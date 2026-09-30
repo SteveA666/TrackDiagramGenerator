@@ -25,6 +25,10 @@ public class DiagramPanel extends JPanel {
         this.setBackground(Color.WHITE);
     }
 
+    public boolean isShowDebugNodes() {
+        return showDebugNodes;
+    }
+
     @Override 
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -77,5 +81,10 @@ public class DiagramPanel extends JPanel {
         g2.setColor(Color.BLACK);
         g2.draw(new Line2D.Double(node.getX() - 5, node.getY() - 5,
                               node.getX() + 5, node.getY() + 5));
+    }
+
+    public void setShowDebugNodes(boolean showDebugNodes) {
+        this.showDebugNodes = showDebugNodes;
+        repaint(); // Trigger a repaint to reflect the change
     }
 }
