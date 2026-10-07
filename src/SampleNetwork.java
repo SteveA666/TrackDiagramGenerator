@@ -1,5 +1,9 @@
 import model.*;
 
+/**
+ * SampleNetwork<br>
+ * Creates a small example track network for displaying a diagram.<br>
+ */
 public class SampleNetwork {
     public static Network createSampleNetwork() {
         Network network = new Network();

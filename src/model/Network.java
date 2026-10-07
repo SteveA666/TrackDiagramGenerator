@@ -2,14 +2,16 @@ package model;
 import java.util.*;
 
 /**
- * 
- * Network <br>
- * A network of nodes and track segments.
+ * Network<br>
+ * Stores the diagram nodes, track segments, and stations.<br>
+ * Maintains track connectivity and validates edits to registered<br>
+ * objects.<br>
  */
 public class Network {
     private final Map<Integer, Node> nodes;
     private final Map<Integer, TrackSegment> trackSegments;
     private final Map<Integer, List<TrackSegment>> adjacencyList;
+    private final Map<Integer, Station> stations = new LinkedHashMap<>();
 
     public Network() {
         this.nodes = new LinkedHashMap<>();
@@ -55,6 +57,10 @@ public class Network {
 
         Objects.requireNonNull(segment, "Network: Cannot add a null track segment.");
 
+        if (segment.getNetwork() != null) {
+            throw new IllegalArgumentException("Track segment already belongs to a network");
+        }
+
         if (trackSegments.containsKey(segment.getId())) {
             throw new IllegalArgumentException(
                 "Network: Track segment with ID " 
@@ -72,6 +78,7 @@ public class Network {
         }
 
         trackSegments.put(segment.getId(), segment);
+        segment.attach(this);
         adjacencyList
                 .computeIfAbsent(segment.getStart().getId(), k -> new ArrayList<>())
                 .add(segment);
@@ -82,6 +89,25 @@ public class Network {
 
     public TrackSegment getTrackSegment(int id) {
         return trackSegments.get(id);
+    }
+
+    /**
+     * Validates before changing anything,<br>
+     * so failed edits leave the graph intact.<br>
+     */
+    public void reconnectTrackSegment(int id, Node start, Node end) {
+        TrackSegment segment = trackSegments.get(id);
+        if (segment == null) {
+            throw new IllegalArgumentException("Unknown track segment ID: " + id);
+        }
+        TrackSegment.validateEndpoints(start, end);
+        requireNode(start);
+        requireNode(end);
+        adjacencyList.get(segment.getStart().getId()).remove(segment);
+        adjacencyList.get(segment.getEnd().getId()).remove(segment);
+        segment.assignEndpoints(start, end);
+        adjacencyList.get(start.getId()).add(segment);
+        adjacencyList.get(end.getId()).add(segment);
     }
 
     public Collection<TrackSegment> getAllTrackSegments() {
@@ -98,6 +124,12 @@ public class Network {
 
         List<TrackSegment> atEnd = adjacencyList.get(segment.getEnd().getId());
         if (atEnd != null) {atEnd.remove(segment);}
+
+        // Remove the entire physical platform if either edge loses its track.
+        for (Station station : stations.values()) {
+            station.removePlatformsOn(segment);
+        }
+        segment.attach(null);
 
         return true;
     }
@@ -126,6 +158,46 @@ public class Network {
     public int nodeCount()      { return nodes.size(); }
     public int segmentCount()   { return trackSegments.size(); }
 
+    public void addStation(Station station) {
+        Objects.requireNonNull(station, "Station cannot be null");
+        if (stations.containsKey(station.getId()) || station.getNetwork() != null) {
+            throw new IllegalArgumentException("Station ID already exists or station already belongs to a network");
+        }
+        for (Platform platform : station.getPlatforms()) {
+            validatePlatformEdges(platform.getEdges());
+        }
+        stations.put(station.getId(), station);
+        station.attach(this);
+    }
+
+    public Station getStation(int id) { return stations.get(id); }
+
+    public Collection<Station> getAllStations() {
+        return Collections.unmodifiableCollection(stations.values());
+    }
+
+    public int stationCount() { return stations.size(); }
+
+    /**
+     * Detaches the station with its platforms intact,<br>
+     * without deleting tracks.<br>
+     */
+    public boolean removeStation(int id) {
+        Station station = stations.remove(id);
+        if (station == null) { return false; }
+        station.attach(null);
+        return true;
+    }
+
+    void validatePlatformEdges(List<PlatformEdge> edges) {
+        for (PlatformEdge edge : edges) {
+            TrackSegment segment = edge.getTrackSegment();
+            if (trackSegments.get(segment.getId()) != segment) {
+                throw new IllegalArgumentException("Platform edge must reference the registered track segment");
+            }
+        }
+    }
+
     private void requireNode(Node node) {
         Objects.requireNonNull(node, "Network: Node cannot be null.");
         Node registered = nodes.get(node.getId());
@@ -133,11 +205,10 @@ public class Network {
             throw new IllegalArgumentException(
                 "Network: Segment references unknown node id: " + node.getId());
         }
-        // TODO move to io section
-        // if (registered != node) {
-        //     throw new IllegalArgumentException(
-        //         "Network: Segment endpoint instance does not match the node registered in the network (ID: " + node.getId() + ")");
-        // }
+        if (registered != node) {
+            throw new IllegalArgumentException(
+                "Network: Endpoint must be the registered node instance (ID: " + node.getId() + ")");
+        }
     }
     
 }

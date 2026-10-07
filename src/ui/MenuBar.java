@@ -3,7 +3,16 @@ package ui;
 import javax.swing.*;
 import java.awt.event.ActionListener;
 
+/**
+ * MenuBar<br>
+ * Builds the application menus and forwards menu actions to their<br>
+ * handler.<br>
+ */
 public class MenuBar extends JMenuBar {
+    /**
+     * MenuActions<br>
+     * Defines the menu callbacks handled by the application window.<br>
+     */
     public interface MenuActions{
         void onNew();
         void onOpen();
@@ -13,7 +22,7 @@ public class MenuBar extends JMenuBar {
         void onExit();
         void onAbout();
         void onSettings();
-        void onToggleDebugNodes();
+        void onSetDebugNodes(boolean visible);
     }
 
     private final MenuActions menuActions;
@@ -45,7 +54,7 @@ public class MenuBar extends JMenuBar {
         viewMenu.setMnemonic('V');
 
         JCheckBoxMenuItem debugItem = new JCheckBoxMenuItem("Toggle Debug Nodes");
-        debugItem.addActionListener(e -> menuActions.onToggleDebugNodes());
+        debugItem.addActionListener(e -> menuActions.onSetDebugNodes(debugItem.isSelected()));
         viewMenu.add(debugItem);
         viewMenu.addSeparator();
         viewMenu.add(menuItem("Settings", e -> menuActions.onSettings()));

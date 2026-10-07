@@ -1,7 +1,11 @@
 package model;
 
+import java.util.Objects;
+
 /**
- * A node/endpoint on the track network.
+ * Node<br>
+ * Represents a track endpoint with an identity, diagram position,<br>
+ * and node type.<br>
  */
 public class Node {
     private final int id;
@@ -13,7 +17,7 @@ public class Node {
         this.id = id;
         this.x = x;
         this.y = y;
-        this.type = type;
+        this.type = Objects.requireNonNull(type, "Node type cannot be null");
     }
 
     public int getId() {
@@ -36,12 +40,20 @@ public class Node {
         this.y = y;
     }
 
+    /**
+     * Sets both diagram coordinates as one editing operation.<br>
+     */
+    public void setPosition(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
     public NodeType getNodeType() {
         return type;
     }
 
     public void setNodeType(NodeType type) {
-        this.type = type;
+        this.type = Objects.requireNonNull(type, "Node type cannot be null");
     }
 
     @Override

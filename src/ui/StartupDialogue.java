@@ -3,8 +3,17 @@ package ui;
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * StartupDialogue<br>
+ * Lets the user choose to create a diagram, open a diagram,<br>
+ * or exit the application.<br>
+ */
 public class StartupDialogue extends JDialog {
 
+    /**
+     * Choice<br>
+     * Lists the actions available from the startup dialogue.<br>
+     */
     public enum Choice {
         NEW, OPEN, EXIT
     }
