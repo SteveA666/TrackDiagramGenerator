@@ -22,25 +22,14 @@ public class TrackSegment {
         validateEndpoints(start, end);
     }
 
-    public int getId() {
-        return id;
-    }
+    // Identity
+    public int getId(){ return id; }
 
-    public Node getStart() {
-        return start;
-    }
-
-    public void setStart(Node start) {
-        setEndpoints(start, end);
-    }
-
-    public Node getEnd() {
-        return end;
-    }
-
-    public void setEnd(Node end) {
-        setEndpoints(start, end);
-    }
+    // Endpoints and connectivity
+    public Node getStart(){ return start; }
+    public Node getEnd(){ return end; }
+    public void setStart(Node start){ setEndpoints(start, end); }
+    public void setEnd(Node end){ setEndpoints(start, end); }
 
     /**
      * Updates both endpoints atomically, including connectivity when<br>
@@ -55,6 +44,20 @@ public class TrackSegment {
         }
     }
 
+    void assignEndpoints(Node start, Node end) {
+        this.start = start;
+        this.end = end;
+    }
+
+    // Track type
+    public TrackType getTrackType(){ return type; }
+    public void setTrackType(TrackType type){ this.type = Objects.requireNonNull(type, "Track type cannot be null"); }
+
+    // Network ownership
+    Network getNetwork(){ return network; }
+    void attach(Network network){ this.network = network; }
+
+    // Validation
     static void validateEndpoints(Node start, Node end) {
         Objects.requireNonNull(start, "Start node cannot be null");
         Objects.requireNonNull(end, "End node cannot be null");
@@ -63,24 +66,7 @@ public class TrackSegment {
         }
     }
 
-    void assignEndpoints(Node start, Node end) {
-        this.start = start;
-        this.end = end;
-    }
-
-    Network getNetwork() { return network; }
-    void attach(Network network) { this.network = network; }
-
-    public TrackType getTrackType() {
-        return type;
-    }
-
-    public void setTrackType(TrackType type) {
-        this.type = Objects.requireNonNull(type, "Track type cannot be null");
-    }
-
+    // Text representation
     @Override
-    public String toString() {
-        return "TrackSegment [id=" + id + ", type=" + type + ", start=" + start.getId() + ", end=" + end.getId() + "]";
-    }
+    public String toString(){ return "TrackSegment [id=" + id + ", type=" + type + ", start=" + start.getId() + ", end=" + end.getId() + "]"; }
 }

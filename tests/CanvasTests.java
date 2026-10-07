@@ -149,8 +149,8 @@ public final class CanvasTests {
         throw new AssertionError("Missing toolbar button: " + text);
     }
 
-    private static JComboBox<?> nodeChoice(EditorToolbar toolbar) { return choice(toolbar, 0); }
-    private static JComboBox<?> trackChoice(EditorToolbar toolbar) { return choice(toolbar, 1); }
+    private static JComboBox<?> nodeChoice(EditorToolbar toolbar){ return choice(toolbar, 0); }
+    private static JComboBox<?> trackChoice(EditorToolbar toolbar){ return choice(toolbar, 1); }
     private static JComboBox<?> choice(EditorToolbar toolbar, int index) {
         for (Component component : toolbar.getComponents()) {
             if (component instanceof JComboBox && index-- == 0) { return (JComboBox<?>) component; }
@@ -165,23 +165,13 @@ public final class CanvasTests {
         throw new AssertionError("Missing snapping control");
     }
 
-    private static void cancel(DiagramPanel panel) {
-        panel.getActionMap().get("cancel").actionPerformed(new ActionEvent(panel, 0, "cancel"));
-    }
+    private static void cancel(DiagramPanel panel){ panel.getActionMap().get("cancel").actionPerformed(new ActionEvent(panel, 0, "cancel")); }
 
-    private static void click(DiagramPanel panel, int x, int y) { press(panel, x, y); release(panel, x, y); }
-    private static void press(DiagramPanel panel, int x, int y) {
-        mouse(panel, MouseEvent.MOUSE_PRESSED, x, y, MouseEvent.BUTTON1, MouseEvent.BUTTON1_DOWN_MASK);
-    }
-    private static void release(DiagramPanel panel, int x, int y) {
-        mouse(panel, MouseEvent.MOUSE_RELEASED, x, y, MouseEvent.BUTTON1, 0);
-    }
-    private static void drag(DiagramPanel panel, int x, int y) {
-        mouse(panel, MouseEvent.MOUSE_DRAGGED, x, y, MouseEvent.NOBUTTON, MouseEvent.BUTTON1_DOWN_MASK);
-    }
-    private static void mouse(DiagramPanel panel, int id, int x, int y, int button, int modifiers) {
-        panel.dispatchEvent(new MouseEvent(panel, id, System.currentTimeMillis(), modifiers, x, y, 1, false, button));
-    }
+    private static void click(DiagramPanel panel, int x, int y){ press(panel, x, y); release(panel, x, y); }
+    private static void press(DiagramPanel panel, int x, int y){ mouse(panel, MouseEvent.MOUSE_PRESSED, x, y, MouseEvent.BUTTON1, MouseEvent.BUTTON1_DOWN_MASK); }
+    private static void release(DiagramPanel panel, int x, int y){ mouse(panel, MouseEvent.MOUSE_RELEASED, x, y, MouseEvent.BUTTON1, 0); }
+    private static void drag(DiagramPanel panel, int x, int y){ mouse(panel, MouseEvent.MOUSE_DRAGGED, x, y, MouseEvent.NOBUTTON, MouseEvent.BUTTON1_DOWN_MASK); }
+    private static void mouse(DiagramPanel panel, int id, int x, int y, int button, int modifiers){ panel.dispatchEvent(new MouseEvent(panel, id, System.currentTimeMillis(), modifiers, x, y, 1, false, button)); }
 
     private static void check(boolean condition, String message) {
         checks++;

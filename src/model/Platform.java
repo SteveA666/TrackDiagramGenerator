@@ -17,32 +17,33 @@ public class Platform {
      * Convenience placement spanning the entire track, on its left,<br>
      * offset by 8 units.<br>
      */
-    public Platform(int number, TrackSegment trackSegment) {
-        this(number, new PlatformEdge(trackSegment, TrackSide.LEFT, 0, 1, 8));
-    }
+    public Platform(int number, TrackSegment trackSegment){ this(number, new PlatformEdge(trackSegment, TrackSide.LEFT, 0, 1, 8)); }
 
     public Platform(int number, PlatformEdge... edges) {
         setNumber(number);
         setEdges(edges);
     }
 
-    public int getNumber() { return number; }
-    public Station getStation() { return station; }
-    public List<PlatformEdge> getEdges() { return edges; }
-    public boolean isSidePlatform() { return edges.size() == 1; }
-    public boolean isIslandPlatform() { return edges.size() == 2; }
-
-    /**
-     * For compatibility, returns the first edge's track.<br>
-     * Use getEdges() for islands.<br>
-     */
-    public TrackSegment getTrackSegment() { return edges.get(0).getTrackSegment(); }
+    // Numbering
+    public int getNumber(){ return number; }
 
     public void setNumber(int number) {
         if (number <= 0) { throw new IllegalArgumentException("Platform number must be positive"); }
         if (station != null) { station.validateNumber(this, number); }
         this.number = number;
     }
+
+    // Placement and platform form
+    public List<PlatformEdge> getEdges(){ return edges; }
+
+    /**
+     * For compatibility, returns the first edge's track.<br>
+     * Use getEdges() for islands.<br>
+     */
+    public TrackSegment getTrackSegment(){ return edges.get(0).getTrackSegment(); }
+
+    public boolean isSidePlatform(){ return edges.size() == 1; }
+    public boolean isIslandPlatform(){ return edges.size() == 2; }
 
     /**
      * Atomically replaces placement and changes between side and<br>
@@ -78,5 +79,7 @@ public class Platform {
                 edge.getEndFraction(), edge.getOffset()));
     }
 
-    void attach(Station station) { this.station = station; }
+    // Station ownership
+    public Station getStation(){ return station; }
+    void attach(Station station){ this.station = station; }
 }

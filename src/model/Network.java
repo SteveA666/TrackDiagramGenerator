@@ -19,6 +19,11 @@ public class Network {
         this.adjacencyList = new HashMap<>();
     }
 
+    // Nodes
+    public Node getNode(int id){ return nodes.get(id); }
+    public Collection<Node> getAllNodes(){ return Collections.unmodifiableCollection(nodes.values()); }
+    public int nodeCount(){ return nodes.size(); }
+
     public void addNode(Node node) {
         
         Objects.requireNonNull(node, "Network: Cannot add a null node.");
@@ -28,14 +33,6 @@ public class Network {
         }
         nodes.put(node.getId(), node);
         adjacencyList.putIfAbsent(node.getId(), new ArrayList<>());
-    }
-
-    public Node getNode(int id) {
-        return nodes.get(id);
-    }
-
-    public Collection<Node> getAllNodes() {
-        return Collections.unmodifiableCollection(nodes.values());
     }
 
     public boolean removeNode(int id) { 
@@ -52,7 +49,11 @@ public class Network {
         return true;
     }
 
-    // Track segment management
+    // Track segments
+    public TrackSegment getTrackSegment(int id){ return trackSegments.get(id); }
+    public Collection<TrackSegment> getAllTrackSegments(){ return Collections.unmodifiableCollection(trackSegments.values()); }
+    public int segmentCount(){ return trackSegments.size(); }
+
     public void addTrackSegment(TrackSegment segment) {
 
         Objects.requireNonNull(segment, "Network: Cannot add a null track segment.");
@@ -87,10 +88,6 @@ public class Network {
                 .add(segment);
     }
 
-    public TrackSegment getTrackSegment(int id) {
-        return trackSegments.get(id);
-    }
-
     /**
      * Validates before changing anything,<br>
      * so failed edits leave the graph intact.<br>
@@ -109,11 +106,6 @@ public class Network {
         adjacencyList.get(start.getId()).add(segment);
         adjacencyList.get(end.getId()).add(segment);
     }
-
-    public Collection<TrackSegment> getAllTrackSegments() {
-        return Collections.unmodifiableCollection(trackSegments.values());
-    }
-
 
     public boolean removeTrackSegment(int id) {
         TrackSegment segment = trackSegments.remove(id);
@@ -134,10 +126,35 @@ public class Network {
         return true;
     }
 
+    // Stations
+    public Station getStation(int id){ return stations.get(id); }
+    public Collection<Station> getAllStations(){ return Collections.unmodifiableCollection(stations.values()); }
+    public int stationCount(){ return stations.size(); }
 
+    public void addStation(Station station) {
+        Objects.requireNonNull(station, "Station cannot be null");
+        if (stations.containsKey(station.getId()) || station.getNetwork() != null) {
+            throw new IllegalArgumentException("Station ID already exists or station already belongs to a network");
+        }
+        for (Platform platform : station.getPlatforms()) {
+            validatePlatformEdges(platform.getEdges());
+        }
+        stations.put(station.getId(), station);
+        station.attach(this);
+    }
 
+    /**
+     * Detaches the station with its platforms intact,<br>
+     * without deleting tracks.<br>
+     */
+    public boolean removeStation(int id) {
+        Station station = stations.remove(id);
+        if (station == null) { return false; }
+        station.attach(null);
+        return true;
+    }
 
-    // Helpers
+    // Connectivity queries
     public List<TrackSegment> segmentsAt(int nodeId) {
         List<TrackSegment> list = adjacencyList.get(nodeId);
         return list != null ? Collections.unmodifiableList(list) : Collections.emptyList();
@@ -155,49 +172,7 @@ public class Network {
         return neighbors;
     }
 
-    public int nodeCount()      { return nodes.size(); }
-    public int segmentCount()   { return trackSegments.size(); }
-
-    public void addStation(Station station) {
-        Objects.requireNonNull(station, "Station cannot be null");
-        if (stations.containsKey(station.getId()) || station.getNetwork() != null) {
-            throw new IllegalArgumentException("Station ID already exists or station already belongs to a network");
-        }
-        for (Platform platform : station.getPlatforms()) {
-            validatePlatformEdges(platform.getEdges());
-        }
-        stations.put(station.getId(), station);
-        station.attach(this);
-    }
-
-    public Station getStation(int id) { return stations.get(id); }
-
-    public Collection<Station> getAllStations() {
-        return Collections.unmodifiableCollection(stations.values());
-    }
-
-    public int stationCount() { return stations.size(); }
-
-    /**
-     * Detaches the station with its platforms intact,<br>
-     * without deleting tracks.<br>
-     */
-    public boolean removeStation(int id) {
-        Station station = stations.remove(id);
-        if (station == null) { return false; }
-        station.attach(null);
-        return true;
-    }
-
-    void validatePlatformEdges(List<PlatformEdge> edges) {
-        for (PlatformEdge edge : edges) {
-            TrackSegment segment = edge.getTrackSegment();
-            if (trackSegments.get(segment.getId()) != segment) {
-                throw new IllegalArgumentException("Platform edge must reference the registered track segment");
-            }
-        }
-    }
-
+    // Reference validation
     private void requireNode(Node node) {
         Objects.requireNonNull(node, "Network: Node cannot be null.");
         Node registered = nodes.get(node.getId());
@@ -210,5 +185,13 @@ public class Network {
                 "Network: Endpoint must be the registered node instance (ID: " + node.getId() + ")");
         }
     }
-    
+
+    void validatePlatformEdges(List<PlatformEdge> edges) {
+        for (PlatformEdge edge : edges) {
+            TrackSegment segment = edge.getTrackSegment();
+            if (trackSegments.get(segment.getId()) != segment) {
+                throw new IllegalArgumentException("Platform edge must reference the registered track segment");
+            }
+        }
+    }
 }

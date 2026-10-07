@@ -15,16 +15,12 @@ public final class DiagramViewport {
     private double offsetX;
     private double offsetY;
 
-    public double getZoom() { return zoom; }
+    // Scale and coordinate conversion
+    public double getZoom(){ return zoom; }
+    public Point2D.Double toScreen(Point2D world){ return new Point2D.Double(world.getX() * zoom + offsetX, world.getY() * zoom + offsetY); }
+    public Point2D.Double toWorld(Point2D screen){ return new Point2D.Double((screen.getX() - offsetX) / zoom, (screen.getY() - offsetY) / zoom); }
 
-    public Point2D.Double toScreen(Point2D world) {
-        return new Point2D.Double(world.getX() * zoom + offsetX, world.getY() * zoom + offsetY);
-    }
-
-    public Point2D.Double toWorld(Point2D screen) {
-        return new Point2D.Double((screen.getX() - offsetX) / zoom, (screen.getY() - offsetY) / zoom);
-    }
-
+    // View navigation
     public void pan(double dx, double dy) {
         requireFinite(dx); requireFinite(dy);
         requireFinite(offsetX + dx); requireFinite(offsetY + dy);
@@ -46,7 +42,7 @@ public final class DiagramViewport {
         offsetY = nextY;
     }
 
-    public void reset() { zoom = 1; offsetX = 0; offsetY = 0; }
+    public void reset(){ zoom = 1; offsetX = 0; offsetY = 0; }
 
     public void fit(Rectangle2D bounds, int width, int height) {
         if (width <= 0 || height <= 0) { return; }
@@ -57,6 +53,7 @@ public final class DiagramViewport {
         offsetY = height / 2.0 - bounds.getCenterY() * zoom;
     }
 
+    // Validation
     private void requireFinite(double value) {
         if (!Double.isFinite(value)) { throw new IllegalArgumentException("View coordinates must be finite."); }
     }

@@ -20,14 +20,24 @@ public class Station {
         setName(name);
     }
 
-    public int getId() { return id; }
-    public String getName() { return name; }
-    public Network getNetwork() { return network; }
+    // Identity and name
+    public int getId(){ return id; }
+    public String getName(){ return name; }
 
     public void setName(String name) {
         Objects.requireNonNull(name, "Station name cannot be null");
         if (name.trim().isEmpty()) { throw new IllegalArgumentException("Station name cannot be blank"); }
         this.name = name;
+    }
+
+    // Platforms
+    public List<Platform> getPlatforms(){ return Collections.unmodifiableList(platforms); }
+
+    public Platform getPlatform(int number) {
+        for (Platform platform : platforms) {
+            if (platform.getNumber() == number) { return platform; }
+        }
+        return null;
     }
 
     public void addPlatform(Platform platform) {
@@ -41,32 +51,12 @@ public class Station {
         platform.attach(this);
     }
 
-    public List<Platform> getPlatforms() { return Collections.unmodifiableList(platforms); }
-
-    public Platform getPlatform(int number) {
-        for (Platform platform : platforms) {
-            if (platform.getNumber() == number) { return platform; }
-        }
-        return null;
-    }
-
     public boolean removePlatform(int number) {
         Platform platform = getPlatform(number);
         if (platform == null) { return false; }
         platforms.remove(platform);
         platform.attach(null);
         return true;
-    }
-
-    void validateNumber(Platform edited, int number) {
-        Platform existing = getPlatform(number);
-        if (existing != null && existing != edited) {
-            throw new IllegalArgumentException("Platform number already exists in this station: " + number);
-        }
-    }
-
-    void validateEdges(List<PlatformEdge> edges) {
-        if (network != null) { network.validatePlatformEdges(edges); }
     }
 
     void removePlatformsOn(TrackSegment segment) {
@@ -80,5 +70,19 @@ public class Station {
         }
     }
 
-    void attach(Network network) { this.network = network; }
+    // Network ownership
+    public Network getNetwork(){ return network; }
+    void attach(Network network){ this.network = network; }
+
+    // Platform validation
+    void validateNumber(Platform edited, int number) {
+        Platform existing = getPlatform(number);
+        if (existing != null && existing != edited) {
+            throw new IllegalArgumentException("Platform number already exists in this station: " + number);
+        }
+    }
+
+    void validateEdges(List<PlatformEdge> edges) {
+        if (network != null) { network.validatePlatformEdges(edges); }
+    }
 }

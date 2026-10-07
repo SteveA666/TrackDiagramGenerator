@@ -34,6 +34,7 @@ public class MenuBar extends JMenuBar {
         buildHelpMenu();
     }
 
+    // Menu construction
     private void buildFileMenu() {
         JMenu fileMenu = new JMenu("File");
         fileMenu.setMnemonic('F');
@@ -71,11 +72,10 @@ public class MenuBar extends JMenuBar {
         add(helpMenu);
     }
 
+    // Menu item helpers
     private JMenuItem menuItem(String name, ActionListener actionListener) {
         JMenuItem item = new JMenuItem(name);
         item.addActionListener(actionListener);
         return item;
     }
-
-    
 }

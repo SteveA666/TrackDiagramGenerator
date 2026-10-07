@@ -38,17 +38,18 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
         setJMenuBar(new MenuBar(this));
     }
 
-    @Override public void onNew()      { JOptionPane.showMessageDialog(this, "New (TODO)"); }
-    @Override public void onAbout()  { JOptionPane.showMessageDialog(this, "Track Diagram Generator\nVersion 0.0.1\nInternal"); }
-    @Override public void onOpen()     { JOptionPane.showMessageDialog(this, "Open (TODO)"); }
-    @Override public void onSave()     { JOptionPane.showMessageDialog(this, "Save (TODO)"); }
-    @Override public void onSaveAs()   { JOptionPane.showMessageDialog(this, "Save As (TODO)"); }
-    @Override public void onExport()   { JOptionPane.showMessageDialog(this, "Export (TODO)"); }
-    @Override public void onSettings() { JOptionPane.showMessageDialog(this, "Settings (TODO)"); }
+    // File actions
+    @Override public void onNew(){ JOptionPane.showMessageDialog(this, "New (TODO)"); }
+    @Override public void onOpen(){ JOptionPane.showMessageDialog(this, "Open (TODO)"); }
+    @Override public void onSave(){ JOptionPane.showMessageDialog(this, "Save (TODO)"); }
+    @Override public void onSaveAs(){ JOptionPane.showMessageDialog(this, "Save As (TODO)"); }
+    @Override public void onExport(){ JOptionPane.showMessageDialog(this, "Export (TODO)"); }
+    @Override public void onExit(){ dispose(); System.exit(0); }
 
-    @Override public void onExit()     { dispose(); System.exit(0); }
-    @Override public void onSetDebugNodes(boolean visible) {
-        diagramPanel.setShowDebugNodes(visible);
-    }
+    // View actions
+    @Override public void onSetDebugNodes(boolean visible){ diagramPanel.setShowDebugNodes(visible); }
+    @Override public void onSettings(){ JOptionPane.showMessageDialog(this, "Settings (TODO)"); }
 
+    // Help actions
+    @Override public void onAbout(){ JOptionPane.showMessageDialog(this, "Track Diagram Generator\nVersion 0.0.1\nInternal"); }
 }

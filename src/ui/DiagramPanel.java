@@ -48,7 +48,7 @@ public class DiagramPanel extends JPanel {
     private String statusMessage = "Select a node or drag it to move it. Mouse wheel zooms.";
     private boolean statusError;
 
-    public DiagramPanel(Network network) { this(new DiagramEditor(network)); }
+    public DiagramPanel(Network network){ this(new DiagramEditor(network)); }
 
     public DiagramPanel(DiagramEditor editor) {
         this.editor = Objects.requireNonNull(editor, "An editor is required.");
@@ -57,12 +57,10 @@ public class DiagramPanel extends JPanel {
         setFocusable(true);
         setToolTipText("Wheel: zoom. Middle drag or Pan tool: move the view. Escape: cancel.");
         MouseAdapter mouse = new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent event) { press(event); }
-            @Override public void mouseDragged(MouseEvent event) { drag(event); }
-            @Override public void mouseReleased(MouseEvent event) { release(event); }
-            @Override public void mouseWheelMoved(MouseWheelEvent event) {
-                zoomAt(Math.pow(1.15, -event.getPreciseWheelRotation()), event.getPoint());
-            }
+            @Override public void mousePressed(MouseEvent event){ press(event); }
+            @Override public void mouseDragged(MouseEvent event){ drag(event); }
+            @Override public void mouseReleased(MouseEvent event){ release(event); }
+            @Override public void mouseWheelMoved(MouseWheelEvent event){ zoomAt(Math.pow(1.15, -event.getPreciseWheelRotation()), event.getPoint()); }
             @Override public void mouseMoved(MouseEvent event) {
                 pointer = event.getPoint();
                 hoveredNode = nodeAt(pointer);
@@ -79,11 +77,30 @@ public class DiagramPanel extends JPanel {
         addMouseWheelListener(mouse);
         getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("ESCAPE"), "cancel");
         getActionMap().put("cancel", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent event) { cancelInteraction(); }
+            @Override public void actionPerformed(ActionEvent event){ cancelInteraction(); }
         });
         bindToolShortcut("N", Tool.ADD_NODE);
         bindToolShortcut("T", Tool.ADD_TRACK);
     }
+
+    // Selection and editing tools
+    public Tool getTool(){ return tool; }
+    public Node getSelectedNode(){ return selectedNode; }
+
+    public void setTool(Tool tool) {
+        Tool previous = this.tool;
+        this.tool = Objects.requireNonNull(tool, "A tool is required.");
+        clearPendingEdit();
+        int cursor = tool == Tool.PAN ? Cursor.HAND_CURSOR
+                : tool == Tool.SELECT ? Cursor.DEFAULT_CURSOR : Cursor.CROSSHAIR_CURSOR;
+        setCursor(Cursor.getPredefinedCursor(cursor));
+        firePropertyChange("tool", previous, tool);
+        showStatus(toolHint(), false);
+        repaint();
+    }
+
+    public void setNodeType(NodeType type){ nodeType = Objects.requireNonNull(type, "A node type is required."); }
+    public void setTrackType(TrackType type){ trackType = Objects.requireNonNull(type, "A track type is required."); }
 
     private void bindToolShortcut(String key, Tool tool) {
         String action = "tool-" + key;
@@ -100,24 +117,38 @@ public class DiagramPanel extends JPanel {
         });
     }
 
-    public Tool getTool() { return tool; }
-    public Node getSelectedNode() { return selectedNode; }
-    public String getStatusMessage() { return statusMessage; }
-    public boolean isStatusError() { return statusError; }
-    public boolean isShowDebugNodes() { return showDebugNodes; }
-    public boolean isSnapToGrid() { return snapToGrid; }
-    public double getZoom() { return viewport.getZoom(); }
-    public Point2D.Double worldToScreen(Point2D world) { return viewport.toScreen(world); }
-    public Point2D.Double screenToWorld(Point2D screen) { return viewport.toWorld(screen); }
+    private String toolHint() {
+        switch (tool) {
+            case ADD_NODE: return "Click empty space to add a node. Choose its type above.";
+            case ADD_TRACK: return "Drag to draw a track, or click two existing nodes. Escape cancels.";
+            case PAN: return "Drag to pan. Mouse wheel zooms at the pointer. Fit shows the whole diagram.";
+            default: return "Select a node or drag it to move it. Wheel: zoom. Middle drag: pan.";
+        }
+    }
+
+    // Status feedback
+    public String getStatusMessage(){ return statusMessage; }
+    public boolean isStatusError(){ return statusError; }
+
+    private void showStatus(String message, boolean error) {
+        statusMessage = message;
+        statusError = error;
+        firePropertyChange("status", null, message);
+    }
+
+    // View navigation and coordinates
+    public double getZoom(){ return viewport.getZoom(); }
+    public Point2D.Double worldToScreen(Point2D world){ return viewport.toScreen(world); }
+    public Point2D.Double screenToWorld(Point2D screen){ return viewport.toWorld(screen); }
 
     public void zoomAt(double factor, Point2D anchor) {
         viewport.zoomAt(factor, anchor);
         viewChanged();
     }
 
-    public void zoomIn() { zoomAt(1.25, new Point(getWidth() / 2, getHeight() / 2)); }
-    public void zoomOut() { zoomAt(0.8, new Point(getWidth() / 2, getHeight() / 2)); }
-    public void resetView() { viewport.reset(); viewChanged(); }
+    public void zoomIn(){ zoomAt(1.25, new Point(getWidth() / 2, getHeight() / 2)); }
+    public void zoomOut(){ zoomAt(0.8, new Point(getWidth() / 2, getHeight() / 2)); }
+    public void resetView(){ viewport.reset(); viewChanged(); }
 
     public void fitToDiagram() {
         if (network.nodeCount() == 0) { resetView(); return; }
@@ -140,20 +171,10 @@ public class DiagramPanel extends JPanel {
         repaint();
     }
 
-    public void setTool(Tool tool) {
-        Tool previous = this.tool;
-        this.tool = Objects.requireNonNull(tool, "A tool is required.");
-        clearPendingEdit();
-        int cursor = tool == Tool.PAN ? Cursor.HAND_CURSOR
-                : tool == Tool.SELECT ? Cursor.DEFAULT_CURSOR : Cursor.CROSSHAIR_CURSOR;
-        setCursor(Cursor.getPredefinedCursor(cursor));
-        firePropertyChange("tool", previous, tool);
-        showStatus(toolHint(), false);
-        repaint();
-    }
-
-    public void setNodeType(NodeType type) { nodeType = Objects.requireNonNull(type, "A node type is required."); }
-    public void setTrackType(TrackType type) { trackType = Objects.requireNonNull(type, "A track type is required."); }
+    // Display and snapping preferences
+    public boolean isShowDebugNodes(){ return showDebugNodes; }
+    public void setShowDebugNodes(boolean enabled){ showDebugNodes = enabled; repaint(); }
+    public boolean isSnapToGrid(){ return snapToGrid; }
 
     public void setSnapToGrid(boolean enabled) {
         snapToGrid = enabled;
@@ -162,8 +183,7 @@ public class DiagramPanel extends JPanel {
         repaint();
     }
 
-    public void setShowDebugNodes(boolean enabled) { showDebugNodes = enabled; repaint(); }
-
+    // Pending edits and cancellation
     public void cancelInteraction() {
         clearPendingEdit();
         showStatus("Edit cancelled. " + toolHint(), false);
@@ -182,15 +202,7 @@ public class DiagramPanel extends JPanel {
         panPoint = null;
     }
 
-    private String toolHint() {
-        switch (tool) {
-            case ADD_NODE: return "Click empty space to add a node. Choose its type above.";
-            case ADD_TRACK: return "Drag to draw a track, or click two existing nodes. Escape cancels.";
-            case PAN: return "Drag to pan. Mouse wheel zooms at the pointer. Fit shows the whole diagram.";
-            default: return "Select a node or drag it to move it. Wheel: zoom. Middle drag: pan.";
-        }
-    }
-
+    // Mouse interactions
     private void press(MouseEvent event) {
         if (SwingUtilities.isRightMouseButton(event)) { cancelInteraction(); return; }
         if (SwingUtilities.isMiddleMouseButton(event)
@@ -270,11 +282,6 @@ public class DiagramPanel extends JPanel {
         repaint();
     }
 
-    private Point movePosition(Point screen) {
-        Point2D world = screenToWorld(screen);
-        return placement(new Point2D.Double(world.getX() - dragOffset.x, world.getY() - dragOffset.y));
-    }
-
     private void release(MouseEvent event) {
         if (panPoint != null) {
             if (event.getButton() == panButton) {
@@ -336,6 +343,12 @@ public class DiagramPanel extends JPanel {
         repaint();
     }
 
+    // Placement and hit testing
+    private Point movePosition(Point screen) {
+        Point2D world = screenToWorld(screen);
+        return placement(new Point2D.Double(world.getX() - dragOffset.x, world.getY() - dragOffset.y));
+    }
+
     private Point placement(Point2D point) {
         double x = point.getX(), y = point.getY();
         if (snapToGrid) {
@@ -359,15 +372,10 @@ public class DiagramPanel extends JPanel {
         return nearest;
     }
 
-    private Point positionOf(Node node) { return new Point(node.getX(), node.getY()); }
-    private Point displayPosition(Node node) { return node == draggedNode && preview != null ? preview : positionOf(node); }
+    private Point positionOf(Node node){ return new Point(node.getX(), node.getY()); }
+    private Point displayPosition(Node node){ return node == draggedNode && preview != null ? preview : positionOf(node); }
 
-    private void showStatus(String message, boolean error) {
-        statusMessage = message;
-        statusError = error;
-        firePropertyChange("status", null, message);
-    }
-
+    // Diagram rendering
     @Override
     protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);

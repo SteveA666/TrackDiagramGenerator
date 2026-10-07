@@ -20,25 +20,14 @@ public class Node {
         this.type = Objects.requireNonNull(type, "Node type cannot be null");
     }
 
-    public int getId() {
-        return id;
-    }
+    // Identity
+    public int getId(){ return id; }
 
-    public int getX() {
-        return x;
-    }
-
-    public void setX(int x) {
-        this.x = x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    public void setY(int y) {
-        this.y = y;
-    }
+    // Position
+    public int getX(){ return x; }
+    public int getY(){ return y; }
+    public void setX(int x){ this.x = x; }
+    public void setY(int y){ this.y = y; }
 
     /**
      * Sets both diagram coordinates as one editing operation.<br>
@@ -48,16 +37,11 @@ public class Node {
         this.y = y;
     }
 
-    public NodeType getNodeType() {
-        return type;
-    }
+    // Node type
+    public NodeType getNodeType(){ return type; }
+    public void setNodeType(NodeType type){ this.type = Objects.requireNonNull(type, "Node type cannot be null"); }
 
-    public void setNodeType(NodeType type) {
-        this.type = Objects.requireNonNull(type, "Node type cannot be null");
-    }
-
+    // Text representation
     @Override
-    public String toString() {
-        return "Node [id=" + id + ", x=" + x + ", y=" + y + "]";
-    }
+    public String toString(){ return "Node [id=" + id + ", x=" + x + ", y=" + y + "]"; }
 }

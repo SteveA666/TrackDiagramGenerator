@@ -13,12 +13,12 @@ import model.*;
 public final class DiagramEditor {
     private final Network network;
 
-    public DiagramEditor(Network network) {
-        this.network = Objects.requireNonNull(network, "A diagram network is required.");
-    }
+    public DiagramEditor(Network network){ this.network = Objects.requireNonNull(network, "A diagram network is required."); }
 
-    public Network getNetwork() { return network; }
+    // Network access
+    public Network getNetwork(){ return network; }
 
+    // Node editing
     public Node createNode(int x, int y, NodeType type) {
         if (type == null) { throw new IllegalArgumentException("Choose a node type."); }
         Set<Integer> used = new HashSet<>();
@@ -44,6 +44,7 @@ public final class DiagramEditor {
         node.setPosition(x, y);
     }
 
+    // Track editing
     public TrackSegment createTrack(int startId, int endId, TrackType type) {
         if (type == null) { throw new IllegalArgumentException("Choose a track type."); }
         Node start = requireNode(startId);
@@ -95,6 +96,7 @@ public final class DiagramEditor {
         return track;
     }
 
+    // Lookup and identity allocation
     private Node nodeAt(int x, int y) {
         for (Node node : network.getAllNodes()) {
             if (node.getX() == x && node.getY() == y) { return node; }

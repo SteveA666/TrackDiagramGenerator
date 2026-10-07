@@ -36,9 +36,12 @@ public final class PlatformEdge {
         this.offset = offset;
     }
 
-    public TrackSegment getTrackSegment() { return trackSegment; }
-    public TrackSide getSide() { return side; }
-    public double getStartFraction() { return startFraction; }
-    public double getEndFraction() { return endFraction; }
-    public double getOffset() { return offset; }
+    // Track reference and side
+    public TrackSegment getTrackSegment(){ return trackSegment; }
+    public TrackSide getSide(){ return side; }
+
+    // Extent and offset
+    public double getStartFraction(){ return startFraction; }
+    public double getEndFraction(){ return endFraction; }
+    public double getOffset(){ return offset; }
 }

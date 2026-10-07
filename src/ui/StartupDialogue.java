@@ -20,10 +20,6 @@ public class StartupDialogue extends JDialog {
 
     private Choice result=Choice.EXIT;
 
-    public Choice getResult() {
-        return result;
-    }
-
     public StartupDialogue(JFrame parent) {
         super(parent, "Track Diagram Generator", true);
         setSize(300, 150);
@@ -64,5 +60,7 @@ public class StartupDialogue extends JDialog {
         pack();
         setLocationRelativeTo(parent);
     }
-    
+
+    // Dialogue result
+    public Choice getResult(){ return result; }
 }

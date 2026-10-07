@@ -13,6 +13,7 @@ import model.TrackType;
  * model directly.<br>
  */
 public final class EditorToolbar extends JToolBar {
+
     public EditorToolbar(DiagramPanel panel) {
         setFloatable(false);
         ButtonGroup tools = new ButtonGroup();
@@ -41,6 +42,7 @@ public final class EditorToolbar extends JToolBar {
         add(snap);
     }
 
+    // Tool buttons
     private void addTool(ButtonGroup group, DiagramPanel panel, String label, DiagramPanel.Tool tool) {
         JToggleButton button = new JToggleButton(label, panel.getTool() == tool);
         String shortcut = tool == DiagramPanel.Tool.ADD_NODE ? " (N)"

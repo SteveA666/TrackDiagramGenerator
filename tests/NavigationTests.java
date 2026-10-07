@@ -189,21 +189,19 @@ public final class NavigationTests {
         }
         throw new AssertionError("Missing button: " + text);
     }
-    private static DiagramPanel panel(Network n) { DiagramPanel p = new DiagramPanel(n); p.setSize(800, 500); return p; }
+    private static DiagramPanel panel(Network n){ DiagramPanel p = new DiagramPanel(n); p.setSize(800, 500); return p; }
     private static Point screen(DiagramPanel p, int x, int y) {
         Point2D point = p.worldToScreen(new Point(x, y)); return new Point((int) Math.round(point.getX()), (int) Math.round(point.getY()));
     }
-    private static void cancel(DiagramPanel p) { p.getActionMap().get("cancel").actionPerformed(new ActionEvent(p, 0, "cancel")); }
-    private static void gestureClick(DiagramPanel p, Point at) { press(p, at); release(p, at); }
-    private static void gesture(DiagramPanel p, Point from, Point to) { press(p, from); drag(p, to); release(p, to); }
-    private static void press(DiagramPanel p, Point at) { mouse(p, MouseEvent.MOUSE_PRESSED, at, MouseEvent.BUTTON1, MouseEvent.BUTTON1_DOWN_MASK); }
-    private static void drag(DiagramPanel p, Point at) { mouse(p, MouseEvent.MOUSE_DRAGGED, at, MouseEvent.NOBUTTON, MouseEvent.BUTTON1_DOWN_MASK); }
-    private static void release(DiagramPanel p, Point at) { mouse(p, MouseEvent.MOUSE_RELEASED, at, MouseEvent.BUTTON1, 0); }
-    private static void mouse(DiagramPanel p, int kind, Point at, int button, int modifiers) {
-        p.dispatchEvent(new MouseEvent(p, kind, 0, modifiers, at.x, at.y, 1, false, button));
-    }
-    private static void near(double actual, double expected, String message) { check(Math.abs(actual - expected) < 1e-7, message); }
-    private static void check(boolean condition, String message) { checks++; if (!condition) { throw new AssertionError(message); } }
+    private static void cancel(DiagramPanel p){ p.getActionMap().get("cancel").actionPerformed(new ActionEvent(p, 0, "cancel")); }
+    private static void gestureClick(DiagramPanel p, Point at){ press(p, at); release(p, at); }
+    private static void gesture(DiagramPanel p, Point from, Point to){ press(p, from); drag(p, to); release(p, to); }
+    private static void press(DiagramPanel p, Point at){ mouse(p, MouseEvent.MOUSE_PRESSED, at, MouseEvent.BUTTON1, MouseEvent.BUTTON1_DOWN_MASK); }
+    private static void drag(DiagramPanel p, Point at){ mouse(p, MouseEvent.MOUSE_DRAGGED, at, MouseEvent.NOBUTTON, MouseEvent.BUTTON1_DOWN_MASK); }
+    private static void release(DiagramPanel p, Point at){ mouse(p, MouseEvent.MOUSE_RELEASED, at, MouseEvent.BUTTON1, 0); }
+    private static void mouse(DiagramPanel p, int kind, Point at, int button, int modifiers){ p.dispatchEvent(new MouseEvent(p, kind, 0, modifiers, at.x, at.y, 1, false, button)); }
+    private static void near(double actual, double expected, String message){ check(Math.abs(actual - expected) < 1e-7, message); }
+    private static void check(boolean condition, String message){ checks++; if (!condition) { throw new AssertionError(message); } }
     private static void rejected(Runnable action) {
         checks++;
         try { action.run(); } catch (IllegalArgumentException expected) { return; }

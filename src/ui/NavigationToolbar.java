@@ -10,6 +10,7 @@ import javax.swing.*;
  * Changes the view without modifying diagram coordinates.<br>
  */
 public final class NavigationToolbar extends JToolBar {
+
     public NavigationToolbar(DiagramPanel panel) {
         setFloatable(false);
         addButton("-", "Zoom out at the centre of the canvas", panel::zoomOut);
@@ -30,6 +31,7 @@ public final class NavigationToolbar extends JToolBar {
         add(new JLabel("Mouse wheel: zoom | Middle drag or Pan tool: move the view"));
     }
 
+    // Navigation buttons
     private void addButton(String label, String tooltip, Runnable action) {
         JButton button = new JButton(label);
         button.setMargin(new Insets(4, 10, 4, 10));
