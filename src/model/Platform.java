@@ -49,7 +49,14 @@ public class Platform {
      * Atomically replaces placement and changes between side and<br>
      * island forms.<br>
      */
-    public void setEdges(PlatformEdge... edges) {
+    public void setEdges(PlatformEdge... edges){ setDefinition(number, edges); }
+
+    /**
+     * Validates numbering and placement before changing either value.<br>
+     */
+    public void setDefinition(int number, PlatformEdge... edges) {
+        if (number <= 0) { throw new IllegalArgumentException("Platform number must be positive"); }
+        if (station != null) { station.validateNumber(this, number); }
         Objects.requireNonNull(edges, "Edges cannot be null");
         if (edges.length < 1 || edges.length > 2) {
             throw new IllegalArgumentException("A platform requires one or two edges");
@@ -63,6 +70,7 @@ public class Platform {
             throw new IllegalArgumentException("Island edges must reference different tracks");
         }
         if (station != null) { station.validateEdges(replacement); }
+        this.number = number;
         this.edges = Collections.unmodifiableList(replacement);
     }
 

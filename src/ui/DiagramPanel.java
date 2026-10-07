@@ -1,6 +1,7 @@
 package ui;
 
 import editor.DiagramEditor;
+import editor.PlatformGeometry;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
@@ -18,7 +19,7 @@ public class DiagramPanel extends JPanel {
      * Tool<br>
      * Identifies the current canvas editing or navigation action.<br>
      */
-    public enum Tool { SELECT, ADD_NODE, ADD_TRACK, PAN }
+    public enum Tool { SELECT, ADD_NODE, ADD_TRACK, ADD_STATION, ADD_TEXT, ADD_PLATFORM, PAN }
 
     private static final int HIT_RADIUS = 10;
     private static final int GRID_SIZE = 20;
@@ -27,10 +28,14 @@ public class DiagramPanel extends JPanel {
     private final DiagramViewport viewport = new DiagramViewport();
     private boolean showDebugNodes;
     private boolean snapToGrid = true;
+    private boolean continuousDraw;
     private Tool tool = Tool.SELECT;
     private NodeType nodeType = NodeType.REGULAR;
     private TrackType trackType = TrackType.MAINLINE;
     private Node selectedNode;
+    private Object selectedLabel;
+    private Platform selectedPlatform;
+    private Object draggedLabel;
     private Node trackStart;
     private Point connectionStart;
     private boolean trackGesture;
@@ -45,7 +50,7 @@ public class DiagramPanel extends JPanel {
     private boolean dragMoved;
     private Point panPoint;
     private int panButton;
-    private String statusMessage = "Select a node or drag it to move it. Mouse wheel zooms.";
+    private String statusMessage = "Select an object or drag it to move it. Double-click labels to edit. Mouse wheel zooms.";
     private boolean statusError;
 
     public DiagramPanel(Network network){ this(new DiagramEditor(network)); }
@@ -81,11 +86,17 @@ public class DiagramPanel extends JPanel {
         });
         bindToolShortcut("N", Tool.ADD_NODE);
         bindToolShortcut("T", Tool.ADD_TRACK);
+        bindToolShortcut("S", Tool.ADD_STATION);
+        bindToolShortcut("P", Tool.ADD_PLATFORM);
+        bindToolShortcut("X", Tool.ADD_TEXT);
     }
 
     // Selection and editing tools
     public Tool getTool(){ return tool; }
     public Node getSelectedNode(){ return selectedNode; }
+    public Platform getSelectedPlatform(){ return selectedPlatform; }
+    public Station getSelectedStation(){ return selectedLabel instanceof Station ? (Station) selectedLabel : null; }
+    public CustomText getSelectedCustomText(){ return selectedLabel instanceof CustomText ? (CustomText) selectedLabel : null; }
 
     public void setTool(Tool tool) {
         Tool previous = this.tool;
@@ -120,9 +131,12 @@ public class DiagramPanel extends JPanel {
     private String toolHint() {
         switch (tool) {
             case ADD_NODE: return "Click empty space to add a node. Choose its type above.";
-            case ADD_TRACK: return "Drag to draw a track, or click two existing nodes. Escape cancels.";
+            case ADD_TRACK: return "Drag to draw a track, or click endpoints; empty clicks add nodes. Escape cancels.";
+            case ADD_STATION: return "Click to place a named station. Select and double-click to rename it.";
+            case ADD_PLATFORM: return "Click a track to add a side or island platform to a station.";
+            case ADD_TEXT: return "Click to place custom text. Select and double-click to edit it.";
             case PAN: return "Drag to pan. Mouse wheel zooms at the pointer. Fit shows the whole diagram.";
-            default: return "Select a node or drag it to move it. Wheel: zoom. Middle drag: pan.";
+            default: return "Select an object or drag it to move it. Double-click labels to edit. Wheel: zoom. Middle drag: pan.";
         }
     }
 
@@ -151,15 +165,28 @@ public class DiagramPanel extends JPanel {
     public void resetView(){ viewport.reset(); viewChanged(); }
 
     public void fitToDiagram() {
-        if (network.nodeCount() == 0) { resetView(); return; }
-        double minX = Double.POSITIVE_INFINITY, minY = Double.POSITIVE_INFINITY;
-        double maxX = Double.NEGATIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY;
+        clearPendingEdit();
+        Rectangle2D bounds = null;
         for (Node node : network.getAllNodes()) {
-            minX = Math.min(minX, node.getX()); minY = Math.min(minY, node.getY());
-            maxX = Math.max(maxX, node.getX()); maxY = Math.max(maxY, node.getY());
+            Rectangle2D item = new Rectangle2D.Double(node.getX() - 12.0, node.getY() - 12.0, 24, 24);
+            bounds = bounds == null ? item : bounds.createUnion(item);
         }
-        viewport.fit(new Rectangle2D.Double(minX - 12, minY - 12,
-                maxX - minX + 24, maxY - minY + 24), getWidth(), getHeight());
+        for (Station station : network.getAllStations()) {
+            Rectangle2D item = labelBounds(station);
+            bounds = bounds == null ? item : bounds.createUnion(item);
+        }
+        for (CustomText text : network.getAllCustomTexts()) {
+            Rectangle2D item = labelBounds(text);
+            bounds = bounds == null ? item : bounds.createUnion(item);
+        }
+        for (Station station : network.getAllStations()) {
+            for (Platform platform : station.getPlatforms()) {
+                Rectangle2D item = platformBounds(platform);
+                if (item != null) { bounds = bounds == null ? item : bounds.createUnion(item); }
+            }
+        }
+        if (bounds == null) { resetView(); return; }
+        viewport.fit(bounds, getWidth(), getHeight());
         viewChanged();
     }
 
@@ -183,6 +210,19 @@ public class DiagramPanel extends JPanel {
         repaint();
     }
 
+    // Continuous track drawing
+    public boolean isContinuousDraw(){ return continuousDraw; }
+
+    public void setContinuousDraw(boolean enabled) {
+        boolean previous = continuousDraw;
+        continuousDraw = enabled;
+        if (!enabled) { clearPendingEdit(); }
+        firePropertyChange("continuousDraw", previous, enabled);
+        showStatus(enabled ? "Continuous Draw enabled. Each track end starts the next track. Escape ends the chain."
+                : "Continuous Draw disabled. " + toolHint(), false);
+        repaint();
+    }
+
     // Pending edits and cancellation
     public void cancelInteraction() {
         clearPendingEdit();
@@ -196,6 +236,7 @@ public class DiagramPanel extends JPanel {
         trackGesture = false;
         trackDragged = false;
         draggedNode = null;
+        draggedLabel = null;
         preview = null;
         dragOffset = null;
         dragMoved = false;
@@ -217,6 +258,9 @@ public class DiagramPanel extends JPanel {
         requestFocusInWindow();
         pointer = event.getPoint();
         Node hit = nodeAt(pointer);
+        selectedLabel = null;
+        selectedPlatform = null;
+        if (tool == Tool.ADD_STATION || tool == Tool.ADD_TEXT) { selectedNode = null; }
         try {
             switch (tool) {
                 case ADD_NODE:
@@ -240,9 +284,59 @@ public class DiagramPanel extends JPanel {
                     trackDragged = false;
                     pressPoint = event.getPoint();
                     if (hit != null) { selectedNode = hit; }
-                    showStatus("Drag to an endpoint, or click another existing node. Escape cancels.", false);
+                    showStatus("Drag or click the other endpoint; empty space creates a node. Escape cancels.", false);
                     break;
+                case ADD_PLATFORM: {
+                    selectedNode = null;
+                    if (network.stationCount() == 0 || network.segmentCount() == 0) {
+                        showStatus("Add a station and at least one track before creating a platform.", true);
+                        break;
+                    }
+                    applyPlatformDialog(null, trackAt(pointer));
+                    break;
+                }
+                case ADD_STATION: {
+                    Point at = placement(screenToWorld(pointer));
+                    String name = requestStationName(null);
+                    if (name != null) {
+                        selectedLabel = editor.createStation(name, at.x, at.y);
+                        showStatus("Added station. Select and double-click to rename it.", false);
+                    } else { showStatus("Station placement cancelled.", false); }
+                    break;
+                }
+                case ADD_TEXT: {
+                    Point at = placement(screenToWorld(pointer));
+                    CustomText draft = requestCustomText(null);
+                    if (draft != null) {
+                        selectedLabel = editor.createCustomText(draft.getText(), at.x, at.y,
+                                draft.getSize(), draft.getFont(), draft.getColor());
+                        showStatus("Added text. Select and double-click to edit it.", false);
+                    } else { showStatus("Text placement cancelled.", false); }
+                    break;
+                }
                 default:
+                    selectedLabel = labelAt(pointer);
+                    if (selectedLabel != null) {
+                        selectedNode = null;
+                        if (event.getClickCount() >= 2) { editLabel(); break; }
+                        draggedLabel = selectedLabel;
+                        Point at = labelPosition(selectedLabel);
+                        Point2D world = screenToWorld(pointer);
+                        dragOffset = new Point2D.Double(world.getX() - at.x, world.getY() - at.y);
+                        preview = at;
+                        dragMoved = false;
+                        showStatus("Drag to move the label; double-click to edit it.", false);
+                        break;
+                    }
+                    // Node handles remain reachable when a platform touches a track.
+                    selectedPlatform = hit == null ? platformAt(pointer) : null;
+                    if (selectedPlatform != null) {
+                        selectedNode = null;
+                        if (event.getClickCount() >= 2) { applyPlatformDialog(selectedPlatform, null); }
+                        else { showStatus("Platform " + selectedPlatform.getNumber()
+                                + ": double-click to edit placement, number, or delete.", false); }
+                        break;
+                    }
                     selectedNode = hit;
                     if (hit != null) {
                         draggedNode = hit;
@@ -274,7 +368,7 @@ public class DiagramPanel extends JPanel {
             if (trackGesture) {
                 trackDragged |= pressPoint.distance(pointer) >= 4;
                 hoveredNode = nodeAt(pointer);
-            } else if (draggedNode != null) {
+            } else if (draggedNode != null || draggedLabel != null) {
                 preview = movePosition(pointer);
                 dragMoved = true;
             }
@@ -296,6 +390,19 @@ public class DiagramPanel extends JPanel {
         if (!SwingUtilities.isLeftMouseButton(event)) { return; }
         pointer = event.getPoint();
         if (trackGesture) { releaseTrack(); return; }
+        if (draggedLabel != null) {
+            try {
+                if (dragMoved) {
+                    Point at = movePosition(pointer);
+                    if (draggedLabel instanceof Station) {
+                        editor.moveStation(((Station) draggedLabel).getId(), at.x, at.y);
+                    } else { editor.moveCustomText(((CustomText) draggedLabel).getId(), at.x, at.y); }
+                    showStatus("Moved label.", false);
+                }
+            } catch (IllegalArgumentException failure) { showStatus(failure.getMessage(), true); }
+            finally { clearPendingEdit(); repaint(); }
+            return;
+        }
         if (draggedNode == null) { return; }
         try {
             if (dragMoved) {
@@ -306,6 +413,7 @@ public class DiagramPanel extends JPanel {
         } catch (IllegalArgumentException failure) { showStatus(failure.getMessage(), true); }
         finally {
             draggedNode = null;
+            draggedLabel = null;
             preview = null;
             dragOffset = null;
             dragMoved = false;
@@ -318,7 +426,7 @@ public class DiagramPanel extends JPanel {
         trackDragged |= pressPoint.distance(pointer) >= 4;
         Node end = nodeAt(pointer);
         try {
-            if (trackDragged || (!startedThisPress && end != null)) {
+            if (trackDragged || !startedThisPress) {
                 Point finish = end == null ? placement(screenToWorld(pointer)) : positionOf(end);
                 boolean parallel = trackStart != null && end != null
                         && network.neighborsOf(trackStart.getId()).contains(end);
@@ -327,20 +435,228 @@ public class DiagramPanel extends JPanel {
                         end == null ? null : end.getId(), finish.x, finish.y, nodeType, trackType);
                 selectedNode = segment.getEnd();
                 clearPendingEdit();
-                showStatus("Added track " + segment.getId() + (parallel
-                        ? ". Parallel tracks overlap until their layout is adjusted."
-                        : ". Draw another track or choose a different tool."), false);
+                if (continuousDraw) {
+                    trackStart = segment.getEnd();
+                    connectionStart = positionOf(trackStart);
+                }
+                showStatus("Added track " + segment.getId()
+                        + (parallel ? ". Parallel tracks overlap until their layout is adjusted." : ".")
+                        + (continuousDraw ? " Click or drag to continue from this endpoint. Escape ends the chain."
+                                : " Draw another track or choose a different tool."), false);
             } else if (trackStart == null) {
-                clearPendingEdit();
-                showStatus("Drag across empty space to draw a track, or click an existing node.", true);
-            } else if (!startedThisPress) {
-                showStatus("Choose an existing end node, or drag to create an endpoint.", true);
+                trackStart = nodeAt(worldToScreen(connectionStart));
+                if (trackStart == null) {
+                    trackStart = editor.createNode(connectionStart.x, connectionStart.y, nodeType);
+                }
+                connectionStart = positionOf(trackStart);
+                selectedNode = trackStart;
+                showStatus("Added starting node. Click or drag to the other endpoint. Escape cancels the connection.", false);
             }
         } catch (IllegalArgumentException failure) {
             if (trackStart == null) { clearPendingEdit(); }
             showStatus(failure.getMessage(), true);
         }
         repaint();
+    }
+
+    // Platform editing and drawing
+    protected PlatformDialog.Result requestPlatform(Platform existing, TrackSegment track) {
+        return new PlatformDialog(editor, existing, track).showDialog(this);
+    }
+
+    private void applyPlatformDialog(Platform existing, TrackSegment track) {
+        PlatformDialog.Result result = requestPlatform(existing, track);
+        if (result == null) { showStatus("Platform edit cancelled.", false); return; }
+        if (result.delete) {
+            if (existing == null) { throw new IllegalArgumentException("Select a platform to delete."); }
+            editor.deletePlatform(existing.getStation().getId(), existing.getNumber());
+            selectedPlatform = null;
+            showStatus("Deleted platform; its tracks remain in the diagram.", false);
+            return;
+        }
+        Platform replacement = result.platform;
+        PlatformEdge[] edges = replacement.getEdges().toArray(new PlatformEdge[0]);
+        if (existing == null) {
+            selectedPlatform = editor.createPlatform(result.station.getId(), replacement.getNumber(), edges);
+        } else {
+            editor.editPlatform(existing.getStation().getId(), existing.getNumber(), replacement.getNumber(), edges);
+            selectedPlatform = existing;
+        }
+        showStatus("Platform " + selectedPlatform.getNumber() + " updated. Double-click to edit it.", false);
+    }
+
+    private Path2D platformShape(Platform platform) {
+        return PlatformGeometry.outline(platform, node -> displayPosition(node));
+    }
+
+    private Rectangle2D platformBounds(Platform platform) {
+        try {
+            Rectangle2D shape = platformShape(platform).getBounds2D();
+            CustomText text = platformNumber(platform, shape);
+            return shape.createUnion(labelBounds(text));
+        } catch (IllegalArgumentException invalid) { return null; }
+    }
+
+    private CustomText platformNumber(Platform platform, Rectangle2D shape) {
+        String number = "" + platform.getNumber();
+        FontMetrics metrics = getFontMetrics(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
+        return new CustomText(number, (int) Math.round(shape.getCenterX() - metrics.stringWidth(number) / 2.0),
+                (int) Math.round(shape.getCenterY() - metrics.getHeight() / 2.0), 12,
+                Font.SANS_SERIF, "#333333", 0);
+    }
+
+    private Platform platformAt(Point2D screen) {
+        Point2D world = screenToWorld(screen);
+        Platform hit = null;
+        for (Station station : network.getAllStations()) {
+            for (Platform platform : station.getPlatforms()) {
+                try {
+                    Path2D shape = platformShape(platform);
+                    if (shape.contains(world) || labelBounds(platformNumber(platform, shape.getBounds2D())).contains(world)) {
+                        hit = platform;
+                    }
+                } catch (IllegalArgumentException invalid) { /* Invalid legacy geometry has no selectable surface. */ }
+            }
+        }
+        return hit;
+    }
+
+    private TrackSegment trackAt(Point2D screen) {
+        TrackSegment hit = null;
+        double nearest = HIT_RADIUS;
+        for (TrackSegment track : network.getAllTrackSegments()) {
+            double distance = new Line2D.Double(worldToScreen(positionOf(track.getStart())),
+                    worldToScreen(positionOf(track.getEnd()))).ptSegDist(screen);
+            if (distance <= nearest) { hit = track; nearest = distance; }
+        }
+        return hit;
+    }
+
+    private void drawPlatform(Graphics2D g, Platform platform) {
+        try {
+            Path2D shape = platformShape(platform);
+            g.setColor(new Color(222, 226, 230));
+            g.fill(shape);
+            g.setColor(platform == selectedPlatform ? new Color(30, 115, 210) : new Color(90, 95, 100));
+            g.setStroke(new BasicStroke((float) ((platform == selectedPlatform ? 2 : 1) / getZoom())));
+            g.draw(shape);
+            drawLabel(g, platformNumber(platform, shape.getBounds2D()));
+        } catch (IllegalArgumentException invalid) { /* A zero-length preview cannot define a platform surface. */ }
+    }
+
+    // Label dialogs and validated edits
+    protected String requestStationName(Station station) {
+        return (String) JOptionPane.showInputDialog(this, "Station name:", "Station",
+                JOptionPane.PLAIN_MESSAGE, null, null, station == null ? "" : station.getName());
+    }
+
+    protected CustomText requestCustomText(CustomText existing) {
+        JTextArea text = new JTextArea(existing == null ? "" : existing.getText(), 4, 28);
+        JComboBox<String> font = new JComboBox<>(GraphicsEnvironment
+                .getLocalGraphicsEnvironment().getAvailableFontFamilyNames());
+        font.setEditable(true);
+        font.setSelectedItem(existing == null ? Font.SANS_SERIF : existing.getFont());
+        JTextField size = new JTextField(existing == null ? "16" : "" + existing.getSize());
+        JTextField color = new JTextField(existing == null ? "#000000" : existing.getColor());
+        JPanel form = new JPanel(new GridLayout(0, 1, 4, 4));
+        form.add(new JLabel("Text (multiple lines supported):"));
+        form.add(new JScrollPane(text));
+        form.add(new JLabel("Font:")); form.add(font);
+        form.add(new JLabel("Size in diagram units:")); form.add(size);
+        form.add(new JLabel("Colour (#RRGGBB):")); form.add(color);
+        while (JOptionPane.showConfirmDialog(this, form, "Custom text",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
+            try {
+                return new CustomText(text.getText(), 0, 0, Integer.parseInt(size.getText().trim()),
+                        String.valueOf(font.getSelectedItem()), color.getText().trim(), 0);
+            } catch (IllegalArgumentException failure) {
+                JOptionPane.showMessageDialog(this, failure.getMessage(), "Invalid text", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        return null;
+    }
+
+    private void editLabel() {
+        if (selectedLabel instanceof Station) {
+            Station station = (Station) selectedLabel;
+            String name = requestStationName(station);
+            if (name != null) { editor.renameStation(station.getId(), name); }
+        } else {
+            CustomText text = (CustomText) selectedLabel;
+            CustomText draft = requestCustomText(text);
+            if (draft != null) {
+                editor.editCustomText(text.getId(), draft.getText(), draft.getSize(), draft.getFont(), draft.getColor());
+            }
+        }
+        showStatus("Label editing finished.", false);
+    }
+
+    // Label geometry and drawing
+    private Point labelPosition(Object label) {
+        if (label == draggedLabel && preview != null) { return preview; }
+        if (label instanceof Station) { return new Point(((Station) label).getX(), ((Station) label).getY()); }
+        CustomText text = (CustomText) label;
+        return new Point(text.getX(), text.getY());
+    }
+
+    private CustomText labelStyle(Object label) {
+        if (label instanceof CustomText) { return (CustomText) label; }
+        Station station = (Station) label;
+        return new CustomText(station.getName(), station.getX(), station.getY(), 16,
+                Font.SANS_SERIF, "#000000", station.getId());
+    }
+
+    private Font labelFont(Object label) {
+        CustomText text = labelStyle(label);
+        return new Font(text.getFont(), label instanceof Station ? Font.BOLD : Font.PLAIN, text.getSize());
+    }
+
+    private Rectangle2D labelBounds(Object label) {
+        FontMetrics metrics = getFontMetrics(labelFont(label));
+        String[] lines = labelStyle(label).getText().split("\\R", -1);
+        double width = 1;
+        for (String line : lines) { width = Math.max(width, metrics.stringWidth(line)); }
+        Point at = labelPosition(label);
+        return new Rectangle2D.Double(at.x, at.y,
+                width + (label instanceof Station ? 20 : 0), (double) metrics.getHeight() * lines.length);
+    }
+
+    private Object labelAt(Point2D screen) {
+        Point2D world = screenToWorld(screen);
+        Object hit = null;
+        for (Station station : network.getAllStations()) {
+            if (labelBounds(station).contains(world)) { hit = station; }
+        }
+        for (CustomText text : network.getAllCustomTexts()) {
+            if (labelBounds(text).contains(world)) { hit = text; }
+        }
+        return hit;
+    }
+
+    private void drawLabel(Graphics2D g, Object label) {
+        CustomText text = labelStyle(label);
+        Point at = labelPosition(label);
+        g.setFont(labelFont(label));
+        FontMetrics metrics = g.getFontMetrics();
+        g.setColor(Color.decode(text.getColor()));
+        int offset = label instanceof Station ? 20 : 0;
+        if (label instanceof Station) {
+            g.setStroke(new BasicStroke(2));
+            g.setColor(Color.WHITE);
+            g.fill(new Rectangle2D.Double(at.x + 2.0, at.y + 4.0, 12, 12));
+            g.setColor(Color.BLACK);
+            g.draw(new Rectangle2D.Double(at.x + 2.0, at.y + 4.0, 12, 12));
+        }
+        float baseline = (float) at.y + metrics.getAscent();
+        for (String line : text.getText().split("\\R", -1)) {
+            g.drawString(line, (float) at.x + offset, baseline);
+            baseline += metrics.getHeight();
+        }
+        if (label == selectedLabel) {
+            g.setColor(new Color(30, 115, 210));
+            g.setStroke(new BasicStroke((float) (1 / getZoom())));
+            g.draw(labelBounds(label));
+        }
     }
 
     // Placement and hit testing
@@ -386,12 +702,25 @@ public class DiagramPanel extends JPanel {
             Point2D origin = worldToScreen(new Point(0, 0));
             g.translate(origin.getX(), origin.getY());
             g.scale(getZoom(), getZoom());
+            for (Station station : network.getAllStations()) {
+                for (Platform platform : station.getPlatforms()) { drawPlatform(g, platform); }
+            }
             g.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g.setColor(Color.BLACK);
             for (TrackSegment segment : network.getAllTrackSegments()) {
                 g.draw(new Line2D.Double(displayPosition(segment.getStart()), displayPosition(segment.getEnd())));
             }
+            if (tool == Tool.ADD_PLATFORM && pointer != null) {
+                TrackSegment hovered = trackAt(pointer);
+                if (hovered != null) {
+                    g.setColor(new Color(195, 120, 20));
+                    g.setStroke(new BasicStroke((float) (3 / getZoom())));
+                    g.draw(new Line2D.Double(displayPosition(hovered.getStart()), displayPosition(hovered.getEnd())));
+                }
+            }
             for (Node node : network.getAllNodes()) { drawNode(g, node); }
+            for (Station station : network.getAllStations()) { drawLabel(g, station); }
+            for (CustomText text : network.getAllCustomTexts()) { drawLabel(g, text); }
             if (connectionStart != null && pointer != null) {
                 Node end = nodeAt(pointer);
                 Point finish;

@@ -21,9 +21,9 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
         setLocationRelativeTo(null);
 
         diagramPanel = new DiagramPanel(network);
-        JPanel controls = new JPanel(new GridLayout(0, 1));
-        controls.add(new EditorToolbar(diagramPanel));
-        controls.add(new NavigationToolbar(diagramPanel));
+        JPanel controls = new JPanel(new BorderLayout());
+        controls.add(new EditorToolbar(diagramPanel), BorderLayout.NORTH);
+        controls.add(new NavigationToolbar(diagramPanel), BorderLayout.SOUTH);
         add(controls, BorderLayout.NORTH);
         add(diagramPanel, BorderLayout.CENTER);
         JLabel status = new JLabel(diagramPanel.getStatusMessage());

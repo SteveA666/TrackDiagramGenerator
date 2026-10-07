@@ -3,7 +3,7 @@ import java.util.*;
 
 /**
  * Network<br>
- * Stores the diagram nodes, track segments, and stations.<br>
+ * Stores diagram nodes, tracks, stations, and custom text.<br>
  * Maintains track connectivity and validates edits to registered<br>
  * objects.<br>
  */
@@ -12,6 +12,8 @@ public class Network {
     private final Map<Integer, TrackSegment> trackSegments;
     private final Map<Integer, List<TrackSegment>> adjacencyList;
     private final Map<Integer, Station> stations = new LinkedHashMap<>();
+
+    private final Map<Integer, CustomText> customTexts = new LinkedHashMap<>();
 
     public Network() {
         this.nodes = new LinkedHashMap<>();
@@ -151,6 +153,27 @@ public class Network {
         Station station = stations.remove(id);
         if (station == null) { return false; }
         station.attach(null);
+        return true;
+    }
+
+    // Custom text
+    public CustomText getCustomText(int id){ return customTexts.get(id); }
+    public Collection<CustomText> getAllCustomTexts(){ return Collections.unmodifiableCollection(customTexts.values()); }
+    public int customTextCount(){ return customTexts.size(); }
+
+    public void addCustomText(CustomText text) {
+        Objects.requireNonNull(text, "Custom text cannot be null.");
+        if (customTexts.containsKey(text.getId()) || text.getNetwork() != null) {
+            throw new IllegalArgumentException("Text ID exists or text already belongs to a network.");
+        }
+        customTexts.put(text.getId(), text);
+        text.attach(this);
+    }
+
+    public boolean removeCustomText(int id) {
+        CustomText text = customTexts.remove(id);
+        if (text == null) { return false; }
+        text.attach(null);
         return true;
     }
 

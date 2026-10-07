@@ -1,6 +1,6 @@
 # Diagram model update
 
-This update changes only the model layer and adds regression tests. It contains no train, service, timetable, signalling, or simulation model. The Swing renderer is unchanged: platforms are represented in data but are not drawn by the current DiagramPanel. DiagramIO remains a placeholder; registering stations does not implement saving or loading.
+The original model update and subsequent diagram editing additions are described below. It contains no train, service, timetable, signalling, or simulation model. The Swing renderer draws stations and custom text. Side and island platforms are drawn and can be edited through the platform tool. DiagramIO remains a placeholder; registering stations does not implement saving or loading.
 
 ## Install
 
@@ -81,3 +81,23 @@ With a JDK installed, run from the project root:
 
 The runner compiles all application sources plus the dependency-free test class into work/model-tests and runs 491 checks. Coverage includes endpoint mutation and reversal, repeated graph edits, duplicate objects/IDs, failed-edit atomicity, ownership transfers, station registration/removal, collection protection, platform numbering, side/island conversion, placement ranges/non-finite values, foreign references, and cascading node/track deletion.
 
+
+## Diagram labels
+
+`Station(int id, String name, int x, int y)` adds an explicit drawing position. The two-argument constructor remains available and defaults to `(0, 0)`. Use `getX`, `getY`, and `setPosition` for the station marker's top-left position. Moving or renaming a station preserves its platforms.
+
+`CustomText(String text, int x, int y, int size, String font, String color, int id)` represents a multiline diagram annotation. Its ID is final: changing an identity after registration would break network lookup. The former `setId` method is removed. Position is the text block's top-left corner. Text and font must be nonblank, size must be positive, and colour must match `#RRGGBB`. The model stores font names and colours as strings and has no Swing dependency.
+
+`setAppearance(text, size, font, color)` validates every value before committing any change. Individual setters use the same validation. `Network` provides `addCustomText`, `getCustomText`, `getAllCustomTexts`, `removeCustomText`, and `customTextCount`. It rejects duplicate identities and multiple-network ownership; removing text detaches it. IDs are unique within each object type, as with stations and tracks.
+
+`DiagramEditor` provides `createStation`, `moveStation`, `renameStation`, `createCustomText`, `moveCustomText`, and `editCustomText`. Creation allocates an unused positive ID. Edits reject missing objects and preserve existing data on validation failure. Persistence is still unimplemented.
+
+## Platform drawing and editing
+
+`Platform.setDefinition(number, edges...)` validates the number and every edge before committing either field. `DiagramEditor.createPlatform`, `editPlatform`, and `deletePlatform` operate within a registered station. Edits preserve the platform object and its ownership. Duplicate numbers, foreign track instances, unknown objects, and invalid geometry leave the model unchanged.
+
+`PlatformGeometry` shares the track-relative outline among editor validation, canvas drawing, hit testing, and Fit. Side strips extend 12 units outward from the configured edge; islands join two edges into a simple visible quadrilateral, matching physical ends when track directions differ. Platform numbers use `CustomText` rendering. Model edge ranges remain general; the diagram editor additionally rejects zero-length supporting tracks and crossed or collapsed surfaces.
+
+`moveNode` validates affected platform surfaces at the candidate position before committing the node coordinates. This adds diagram geometry protection to existing track-length validation. Programmatic model mutations still need to respect diagram geometry; the canvas skips invalid legacy surfaces rather than failing the whole painting operation.
+
+The platform dialog translates screen-relative choices (Left/Right for mostly vertical tracks, Above/Below for mostly horizontal tracks) into directed `TrackSide` values. Existing model placements retain their meaning, and reopening a platform selects the matching screen side without flipping its geometry. Percentages still follow track start to end.

@@ -5,7 +5,7 @@ import java.util.*;
 /**
  * Station<br>
  * Groups the numbered platforms of a diagram station<br>
- * under a stable identity and editable name.<br>
+ * under a stable identity, editable name, and drawing position.<br>
  * Validates platform ownership, numbering,<br>
  * and registered track references.<br>
  */
@@ -13,12 +13,23 @@ public class Station {
     private final int id;
     private final List<Platform> platforms = new ArrayList<>();
     private String name;
+    private int x, y;
     private Network network;
 
     public Station(int id, String name) {
         this.id = id;
         setName(name);
     }
+
+    public Station(int id, String name, int x, int y) {
+        this(id, name);
+        setPosition(x, y);
+    }
+
+    // Diagram position
+    public int getX(){ return x; }
+    public int getY(){ return y; }
+    public void setPosition(int x, int y){ this.x = x; this.y = y; }
 
     // Identity and name
     public int getId(){ return id; }
