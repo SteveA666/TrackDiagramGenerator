@@ -21,7 +21,9 @@ The model also supports stations and positioned side/island platforms. Station a
 
 Install a JDK and make sure `java` and `javac` are available. The current application uses Swing and standard Java libraries; no external dependencies are required.
 
-From the project root in PowerShell:
+On Windows, double-click `start.bat` to compile and launch the application. The launcher works from any working directory and keeps errors visible if Java is missing or compilation fails.
+
+Alternatively, from the project root in PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force bin | Out-Null
