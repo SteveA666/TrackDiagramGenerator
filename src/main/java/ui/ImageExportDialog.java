@@ -1,5 +1,7 @@
 package ui;
 
+import app.PortablePaths;
+
 import io.DiagramImageIO;
 import io.DiagramImageIO.Format;
 import java.awt.*;
@@ -48,7 +50,7 @@ public final class ImageExportDialog {
                 int margin = ((Number) padding.getValue()).intValue();
                 DiagramPanel.imageSize(network, factor, margin);
                 Format selected = (Format) format.getSelectedItem();
-                JFileChooser chooser = new JFileChooser(Path.of(".").toAbsolutePath().normalize().toFile());
+                JFileChooser chooser = new JFileChooser(PortablePaths.home().toFile());
                 chooser.setDialogTitle("Export " + selected);
                 chooser.setAcceptAllFileFilterUsed(false);
                 chooser.setFileFilter(selected == Format.PNG ? new FileNameExtensionFilter("PNG image", "png")

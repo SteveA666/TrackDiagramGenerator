@@ -1,18 +1,20 @@
 package settings;
 
+import app.PortablePaths;
+
 import com.google.gson.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 
-/** Project-local preferences, separate from diagram data. Never overwrites malformed settings on load. */
+/** Portable or project-local preferences. Never overwrites malformed settings on load. */
 public final class SettingsStore {
     private static final Gson JSON = new GsonBuilder().setPrettyPrinting().setStrictness(Strictness.STRICT).create();
     private final Path path;
 
     public SettingsStore(Path path) { this.path = path.toAbsolutePath().normalize(); }
-    public static SettingsStore defaultStore() { return new SettingsStore(Path.of("settings.json")); }
+    public static SettingsStore defaultStore() { return new SettingsStore(PortablePaths.home().resolve("settings.json")); }
     public Path getPath() { return path; }
     public Path getDefaultsPath() { return path.resolveSibling("default.json"); }
 

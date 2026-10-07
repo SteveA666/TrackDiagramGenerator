@@ -35,7 +35,7 @@ From the project root in PowerShell:
 
 ```powershell
 .\mvnw.cmd clean verify
-java -jar target/track-diagram-generator-0.1.0-SNAPSHOT.jar
+java -jar target/track-diagram-generator-1.0.0.jar
 ```
 
 Run only the tests with `.\mvnw.cmd test` or `./tests/run-tests.ps1`. Model, editor, canvas, JSON persistence, undo/redo, and settings tests run through JUnit in headless mode. Reports are written to `target/surefire-reports/`. `start.bat` builds, tests, and launches the application; `start.bat --build-only` only builds and tests.
@@ -46,7 +46,27 @@ In VS Code, install **Extension Pack for Java** and open this project folder. VS
 
 ## Save and open
 
-Use **File > Save** to name and save a diagram in the project's `saved_diagrams/` folder. **Save As** chooses another name; **Open** lists saved JSON files. The folder is relative to the working directory, so launch from the project root or use `start.bat`. New, Open, and closing prompt to save unsaved edits. Invalid loads leave the current diagram intact. See the [I/O guide](docs/IO.md) for details and the JSON format.
+Use **File > Save** to name and save a diagram in `saved_diagrams/`. **Save As** chooses another name; **Open** lists saved JSON files. Portable distributions keep this folder and `settings.json` beside their `.portable` marker, independent of the launch directory. Standalone JAR and development launches retain working-directory storage, so launch from the project root or use `start.bat`. New, Open, and closing prompt to save unsaved edits. Invalid loads leave the current diagram intact. See the [I/O guide](docs/IO.md) for details and the JSON format.
+
+## Portable releases
+
+For an installed Windows application, build the MSI with `.\packaging\build-msi.ps1 -JdkHome 'C:\Program Files\Java\jdk-26.0.2'`. It includes Java, installs for the current user, and stores settings and diagrams separately under `%LOCALAPPDATA%\TrackDiagramGenerator`. See [the Windows installer guide](docs/WINDOWS_INSTALLER.md).
+
+The Windows portable ZIP contains `TrackDiagramGenerator.exe`, its bundled Java runtime, and application files. Extract the entire ZIP to a writable folder, then run the EXE. Keep the folder together when moving it. Native Linux and macOS bundles also include Java. The universal JAR ZIP supplies launch scripts for all three systems and requires Java 26 or newer.
+
+Build Windows packages in PowerShell:
+
+```powershell
+.\packaging\build-portable.ps1 -JdkHome 'C:\Program Files\Java\jdk-26.0.2'
+```
+
+Build native Linux or macOS packages on that OS with JDK 26+ available:
+
+```sh
+bash packaging/build-portable.sh
+```
+
+Archives and SHA-256 checksums are written to `target/releases/`. Each build runs tests and checks the packaged runtime's JSON, settings, fonts, PNG, and JPG support. The GitHub Actions **Portable applications** workflow builds all three platforms when manually dispatched or when a `v*` tag is pushed; download its build artifacts. Native packages must be built for their target OS and CPU architecture. See [the portable release guide](docs/PORTABLE_RELEASES.md) for launching, upgrades, and distribution details.
 
 ## Controls
 

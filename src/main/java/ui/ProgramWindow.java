@@ -220,5 +220,5 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
     }
 
     // Help actions
-    @Override public void onAbout(){ JOptionPane.showMessageDialog(this, "Track Diagram Generator\nVersion 0.0.1\nInternal"); }
+    @Override public void onAbout(){ JOptionPane.showMessageDialog(this, "Track Diagram Generator\nVersion 1.0.0"); }
 }

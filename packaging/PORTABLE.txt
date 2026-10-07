@@ -1,0 +1,25 @@
+Track Diagram Generator — portable edition
+
+Extract the entire archive to a writable folder before launching.
+Keep all files and folders together when moving the application.
+
+Windows native bundle: double-click TrackDiagramGenerator.exe.
+Linux native bundle: run ./bin/TrackDiagramGenerator.
+macOS native bundle: double-click Launch.command beside TrackDiagramGenerator.app.
+Native bundles include their own Java runtime; no Java installation is needed.
+They run only on the OS and CPU architecture named in their archive.
+
+Universal JAR bundle (requires Java 26 or newer):
+  Windows: double-click launch.cmd.
+  Linux: sh launch.sh
+  macOS: sh Launch.command (or double-click it when executable).
+
+settings.json is created here when preferences are saved.
+saved_diagrams/ contains your JSON diagrams; default.json supplies reset defaults.
+The .portable marker keeps these paths anchored here even when launched elsewhere.
+Moving this whole folder moves your application and data together.
+For upgrades, extract to a NEW folder and copy settings.json and saved_diagrams/
+from the old version. Keep a backup of your diagrams.
+
+Native packages are unsigned. On macOS, approval may be required in
+System Settings > Privacy & Security after the first launch attempt.

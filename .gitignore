@@ -5,6 +5,7 @@ work/
 .vscode/*
 !.vscode/settings.json
 src/test/java/*
+!src/test/java/app/
 
 tests/run-tests.ps1
 /saved_diagrams/*

@@ -1,5 +1,7 @@
 package io;
 
+import app.PortablePaths;
+
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.List;
@@ -14,7 +16,7 @@ public final class DiagramStore {
         this.directory = Objects.requireNonNull(directory).toAbsolutePath().normalize();
     }
 
-    public static DiagramStore defaultStore() { return new DiagramStore(Path.of("saved_diagrams")); }
+    public static DiagramStore defaultStore() { return new DiagramStore(PortablePaths.home().resolve("saved_diagrams")); }
     public Path getDirectory() { return directory; }
 
     public Path resolve(String filename) {
