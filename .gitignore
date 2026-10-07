@@ -1,5 +1,6 @@
 bin/
 *.class
-.vscode/
-tests/
-start.bat
+target/
+work/
+.vscode/*
+!.vscode/settings.json

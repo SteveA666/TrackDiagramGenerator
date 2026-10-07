@@ -22,22 +22,22 @@ A Java Swing editor for creating and drawing railway track diagrams. Its scope i
 
 Stations are drawn as a square marker with their name. Platforms are filled, numbered surfaces that follow their supporting tracks.
 
-## Run
+## Build, test, and run
 
-Install a JDK and make sure `java` and `javac` are available. The current application uses Swing and standard Java libraries; no external dependencies are required.
+Install JDK 26 or newer and make sure `java` is on PATH (or set `JAVA_HOME` to the JDK directory). The Maven Wrapper pins Maven 3.10.0, so a global Maven installation is optional. The first build downloads Maven and build/test dependencies and requires internet access. The application currently has no external runtime dependencies; tests use JUnit Jupiter.
 
 From the project root in PowerShell:
 
 ```powershell
-New-Item -ItemType Directory -Force bin | Out-Null
-$sourceFiles = @((Get-ChildItem src -Recurse -Filter '*.java').FullName)
-javac -d bin @sourceFiles
-java -cp bin Main
+.\mvnw.cmd clean verify
+java -jar target/track-diagram-generator-0.1.0-SNAPSHOT.jar
 ```
+
+Run only the tests with `.\mvnw.cmd test` or `./tests/run-tests.ps1`. All six existing check suites run through JUnit in headless mode. Reports are written to `target/surefire-reports/`. `start.bat` builds, tests, and launches the application; `start.bat --build-only` only builds and tests.
 
 Choose **New Network** in the startup dialogue to open an empty diagram. The startup **Open Network** option is not implemented yet. `SampleNetwork` remains available in the source as a small example fixture.
 
-In VS Code, the Java project settings use `src` for sources and `bin` for compiled classes. Run `Main` to launch the application.
+In VS Code, install **Extension Pack for Java** and open this project folder. VS Code imports `pom.xml` automatically; the Maven view uses the wrapper. Run/debug `Main` using the Java extensions, or run the build lifecycle from the Maven view. Source and output paths are managed by Maven. If VS Code still shows the old layout, run **Java: Clean Java Language Server Workspace** from the Command Palette and reload.
 
 ## Controls
 
@@ -117,7 +117,7 @@ See [the model guide](docs/MODEL_UPDATE.md) for model APIs, platform placement, 
 ## Project structure
 
 ```text
-src/
+src/main/java/
   Main.java               Application entry point
   Launcher.java           Startup dialogue and window creation
   SampleNetwork.java      Example network fixture
@@ -125,10 +125,11 @@ src/
   model/                  Network, nodes, tracks, stations, platforms, and custom text
   ui/                     Swing windows, canvas, toolbars, and view transforms
   io/                     Placeholder for diagram input/output
+src/test/java/            JUnit entry points for the existing check suites
 docs/                     Editor and model guides
 ```
 
-`bin/` contains compiled application classes.
+`target/` contains compiled classes, test reports, and the executable JAR. Build output is ignored by Git.
 
 ## Remaining work
 

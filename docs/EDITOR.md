@@ -38,7 +38,7 @@ The editor supports node and track creation, station and custom text labels, sid
 
 ## Tests
 
-Run `./tests/run-tests.ps1` with a JDK installed. It compiles the entire application and runs model checks, editing validation checks, and real Swing mouse/toolbar interactions in headless mode. It checks drag preview versus commit, cancellation, snapping, invalid-edit atomicity, ID allocation, view transforms, pointer-anchored zoom, panning, track gestures, endpoint reuse, oriented stub rendering, and rendering without a window.
+Run `.\mvnw.cmd test` (or `./tests/run-tests.ps1`) with JDK 26 or newer installed. It compiles the entire application and runs model checks, editing validation checks, and real Swing mouse/toolbar interactions in headless mode. It checks drag preview versus commit, cancellation, snapping, invalid-edit atomicity, ID allocation, view transforms, pointer-anchored zoom, panning, track gestures, endpoint reuse, oriented stub rendering, and rendering without a window.
 
 ## Stations and custom text
 

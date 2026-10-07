@@ -4,7 +4,7 @@ The original model update and subsequent diagram editing additions are described
 
 ## Install
 
-Copy the archive's src/model, tests, and docs folders into the matching folders in your existing project, replacing the model files. The archive does not contain or replace UI files, README.md, Git history, or local IDE settings. The prepared update has now been applied directly to this project after folder access was granted.
+Copy the archive's src/main/java/model, src/test/java, and docs folders into the matching folders in your existing project, replacing the model files. The archive does not contain or replace UI files, README.md, Git history, or local IDE settings. The prepared update has now been applied directly to this project after folder access was granted.
 
 ## Connectivity and editing
 
@@ -73,13 +73,13 @@ Deleting a node uses the same policy for every connected track. Detached station
 
 ## Verification
 
-With a JDK installed, run from the project root:
+With JDK 26 or newer installed, run from the project root:
 
 ```powershell
-./tests/run-tests.ps1
+.\mvnw.cmd test
 ```
 
-The runner compiles all application sources plus the dependency-free test class into work/model-tests and runs 491 checks. Coverage includes endpoint mutation and reversal, repeated graph edits, duplicate objects/IDs, failed-edit atomicity, ownership transfers, station registration/removal, collection protection, platform numbering, side/island conversion, placement ranges/non-finite values, foreign references, and cascading node/track deletion.
+Maven compiles the application and runs all six existing check suites through JUnit in headless mode. Reports are written to target/surefire-reports. The model suite includes 491 checks. Coverage includes endpoint mutation and reversal, repeated graph edits, duplicate objects/IDs, failed-edit atomicity, ownership transfers, station registration/removal, collection protection, platform numbering, side/island conversion, placement ranges/non-finite values, foreign references, and cascading node/track deletion.
 
 
 ## Diagram labels
