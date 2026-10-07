@@ -2,7 +2,7 @@
 
 A Java Swing editor for creating and drawing railway track diagrams. Its scope is diagram layout: nodes, track connections, stations, platforms, and custom text. It does not simulate trains, services, or timetables.
 
-**Work in progress:** the interactive track editor is usable, but saving and loading are not implemented. Changes exist only in memory and are lost when the application closes.
+**Work in progress:** diagrams can be edited, saved, and reopened as JSON files in `saved_diagrams/`. Image export and undo/redo remain planned.
 
 ## Features
 
@@ -19,12 +19,13 @@ A Java Swing editor for creating and drawing railway track diagrams. Its scope i
 - Pan, zoom around the pointer, fit the diagram, and reset the view.
 - Draw U-shaped stub-end markers oriented to their connected tracks.
 - Display validation feedback in the status bar and optional debug-node circles.
+- Save and reopen complete diagrams as versioned UTF-8 JSON, with unsaved-change prompts.
 
 Stations are drawn as a square marker with their name. Platforms are filled, numbered surfaces that follow their supporting tracks.
 
 ## Build, test, and run
 
-Install JDK 26 or newer and make sure `java` is on PATH (or set `JAVA_HOME` to the JDK directory). The Maven Wrapper pins Maven 3.10.0, so a global Maven installation is optional. The first build downloads Maven and build/test dependencies and requires internet access. The application currently has no external runtime dependencies; tests use JUnit Jupiter.
+Install JDK 26 or newer and make sure `java` is on PATH (or set `JAVA_HOME` to the JDK directory). The Maven Wrapper pins Maven 3.10.0, so a global Maven installation is optional. The first build downloads Maven and build/test dependencies and requires internet access. Gson handles JSON; tests use JUnit Jupiter. The packaged executable JAR includes its runtime dependencies.
 
 From the project root in PowerShell:
 
@@ -33,16 +34,22 @@ From the project root in PowerShell:
 java -jar target/track-diagram-generator-0.1.0-SNAPSHOT.jar
 ```
 
-Run only the tests with `.\mvnw.cmd test` or `./tests/run-tests.ps1`. All six existing check suites run through JUnit in headless mode. Reports are written to `target/surefire-reports/`. `start.bat` builds, tests, and launches the application; `start.bat --build-only` only builds and tests.
+Run only the tests with `.\mvnw.cmd test` or `./tests/run-tests.ps1`. The six existing check suites and JSON persistence tests run through JUnit in headless mode. Reports are written to `target/surefire-reports/`. `start.bat` builds, tests, and launches the application; `start.bat --build-only` only builds and tests.
 
-Choose **New Network** in the startup dialogue to open an empty diagram. The startup **Open Network** option is not implemented yet. `SampleNetwork` remains available in the source as a small example fixture.
+Choose **New Network** in the startup dialogue to open an empty diagram, or **Open Network...** to choose a saved JSON diagram. `SampleNetwork` remains available in the source as a small example fixture.
 
 In VS Code, install **Extension Pack for Java** and open this project folder. VS Code imports `pom.xml` automatically; the Maven view uses the wrapper. Run/debug `Main` using the Java extensions, or run the build lifecycle from the Maven view. Source and output paths are managed by Maven. If VS Code still shows the old layout, run **Java: Clean Java Language Server Workspace** from the Command Palette and reload.
+
+## Save and open
+
+Use **File > Save** to name and save a diagram in the project's `saved_diagrams/` folder. **Save As** chooses another name; **Open** lists saved JSON files. The folder is relative to the working directory, so launch from the project root or use `start.bat`. New, Open, and closing prompt to save unsaved edits. Invalid loads leave the current diagram intact. See the [I/O guide](docs/IO.md) for details and the JSON format.
 
 ## Controls
 
 | Action | Control |
 | --- | --- |
+| Create or open a diagram | **File > New** / **Ctrl+N**, **File > Open...** / **Ctrl+O** |
+| Save or save under another name | **File > Save** / **Ctrl+S**, **File > Save As...** / **Ctrl+Shift+S** |
 | Select or move an object | **Select / Move**, then click or drag a node handle, station marker/name, or text |
 | Add a station | **S** or **Add Station**, click a position, then enter its name |
 | Add a platform | **P** or **Add Platform**, click a track, then choose a station and edge placement |
@@ -124,19 +131,20 @@ src/main/java/
   editor/                 Validated editing operations
   model/                  Network, nodes, tracks, stations, platforms, and custom text
   ui/                     Swing windows, canvas, toolbars, and view transforms
-  io/                     Placeholder for diagram input/output
+  io/                     JSON encoding, validation, and the saved-diagram folder
 src/test/java/            JUnit entry points for the existing check suites
 docs/                     Editor and model guides
+saved_diagrams/           User-created JSON diagrams (ignored by Git)
 ```
 
 `target/` contains compiled classes, test reports, and the executable JAR. Build output is ignored by Git.
 
 ## Remaining work
 
-- Save/load and export, with validation of imported diagrams.
-- Undo/redo, node/track deletion tools, and unsaved-change handling.
+- Image export.
+- Undo/redo and node/track deletion tools.
 - Properties editing for existing nodes and tracks.
 
-Several menu actions remain placeholders, including File > New, Open, Save, Save As, Export, and Settings. The working startup New Network action is separate from File > New.
+Export and Settings remain placeholders. New, Open, Save, Save As, and Exit are implemented.
 
 Earlier documentation was fully or partially generated by DeepSeek V4.1 Flash. This README was updated with assistance from Codex.

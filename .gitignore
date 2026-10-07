@@ -4,3 +4,8 @@ target/
 work/
 .vscode/*
 !.vscode/settings.json
+src/test/java/*.*
+
+tests/run-tests.ps1
+/saved_diagrams/*
+!/saved_diagrams/.gitkeep

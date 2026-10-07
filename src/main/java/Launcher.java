@@ -1,6 +1,5 @@
 import javax.swing.SwingUtilities;
 
-import model.Network;
 import ui.ProgramWindow;
 import ui.StartupDialogue;
 
@@ -16,10 +15,8 @@ public class Launcher {
             dialog.setVisible(true);
             switch (dialog.getResult()) {
                 case NEW:
-                    new ProgramWindow(new Network()).setVisible(true);;
-                    break;
                 case OPEN:
-                    // TODO: Handle opening an existing network
+                    new ProgramWindow(dialog.getDocument()).setVisible(true);
                     break;
                 case EXIT:
                     System.exit(0);

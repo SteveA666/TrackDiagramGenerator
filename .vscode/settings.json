@@ -1,4 +1,7 @@
 {
     "maven.executable.preferMavenWrapper": true,
+    "java.server.launchMode": "Standard",
+    "java.import.maven.enabled": true,
+    "java.import.maven.offline.enabled": false,
     "java.configuration.updateBuildConfiguration": "automatic"
 }

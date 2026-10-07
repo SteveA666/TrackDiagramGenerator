@@ -2,6 +2,9 @@ package ui;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import editor.DiagramDocument;
+import io.DiagramStore;
 
 /**
  * StartupDialogue<br>
@@ -19,6 +22,7 @@ public class StartupDialogue extends JDialog {
     }
 
     private Choice result=Choice.EXIT;
+    private final DiagramDocument document = new DiagramDocument(DiagramStore.defaultStore());
 
     public StartupDialogue(JFrame parent) {
         super(parent, "Track Diagram Generator", true);
@@ -43,8 +47,15 @@ public class StartupDialogue extends JDialog {
         });
 
         openButton.addActionListener(e -> {
-            result = Choice.OPEN;
-            dispose();
+            try {
+                String name = DiagramFileDialogs.chooseOpen(this, document.getStore());
+                if (name == null) { return; }
+                document.open(name);
+                result = Choice.OPEN;
+                dispose();
+            } catch (IOException | IllegalArgumentException failure) {
+                DiagramFileDialogs.showError(this, "Open", failure);
+            }
         });
 
         exitButton.addActionListener(e -> {
@@ -63,4 +74,5 @@ public class StartupDialogue extends JDialog {
 
     // Dialogue result
     public Choice getResult(){ return result; }
+    public DiagramDocument getDocument(){ return document; }
 }

@@ -2,6 +2,10 @@ package ui;
 
 import javax.swing.*;
 import java.awt.event.ActionListener;
+import java.awt.Toolkit;
+import java.awt.GraphicsEnvironment;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 
 /**
  * MenuBar<br>
@@ -39,10 +43,12 @@ public class MenuBar extends JMenuBar {
         JMenu fileMenu = new JMenu("File");
         fileMenu.setMnemonic('F');
         
-        fileMenu.add(menuItem("New", e -> menuActions.onNew()));
-        fileMenu.add(menuItem("Open...", e -> menuActions.onOpen()));
-        fileMenu.add(menuItem("Save", e -> menuActions.onSave()));
-        fileMenu.add(menuItem("Save As...", e -> menuActions.onSaveAs()));
+        int shortcut = GraphicsEnvironment.isHeadless() ? InputEvent.CTRL_DOWN_MASK
+                : Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+        fileMenu.add(fileItem("New", e -> menuActions.onNew(), KeyEvent.VK_N, shortcut));
+        fileMenu.add(fileItem("Open...", e -> menuActions.onOpen(), KeyEvent.VK_O, shortcut));
+        fileMenu.add(fileItem("Save", e -> menuActions.onSave(), KeyEvent.VK_S, shortcut));
+        fileMenu.add(fileItem("Save As...", e -> menuActions.onSaveAs(), KeyEvent.VK_S, shortcut | InputEvent.SHIFT_DOWN_MASK));
         fileMenu.add(menuItem("Export", e -> menuActions.onExport()));
         fileMenu.addSeparator();
         fileMenu.add(menuItem("Exit", e -> menuActions.onExit()));
@@ -73,6 +79,12 @@ public class MenuBar extends JMenuBar {
     }
 
     // Menu item helpers
+    private JMenuItem fileItem(String name, ActionListener actionListener, int key, int modifiers) {
+        JMenuItem item = menuItem(name, actionListener);
+        item.setAccelerator(KeyStroke.getKeyStroke(key, modifiers));
+        return item;
+    }
+
     private JMenuItem menuItem(String name, ActionListener actionListener) {
         JMenuItem item = new JMenuItem(name);
         item.addActionListener(actionListener);

@@ -34,7 +34,7 @@ Stub ends draw a U-shaped buffer marker across the track, with both arms pointin
 
 ## Scope
 
-The editor supports node and track creation, station and custom text labels, side and island platform editing, and view navigation. Node and track types are chosen for new objects. Saving/loading, node/track deletion tools, and undo/redo remain future work. Edits currently exist only in memory and are lost when the application closes.
+The editor supports node and track creation, station and custom text labels, side and island platform editing, view navigation, and JSON saving/loading. Node and track types are chosen for new objects. Node/track deletion tools and undo/redo remain future work. Use File > Save to preserve edits in `saved_diagrams/`; see the [I/O guide](IO.md) for file actions, unsaved-change handling, and the JSON format.
 
 ## Tests
 

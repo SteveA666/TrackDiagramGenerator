@@ -1,6 +1,6 @@
 # Diagram model update
 
-The original model update and subsequent diagram editing additions are described below. It contains no train, service, timetable, signalling, or simulation model. The Swing renderer draws stations and custom text. Side and island platforms are drawn and can be edited through the platform tool. DiagramIO remains a placeholder; registering stations does not implement saving or loading.
+The original model update and subsequent diagram editing additions are described below. It contains no train, service, timetable, signalling, or simulation model. The Swing renderer draws stations and custom text. Side and island platforms are drawn and can be edited through the platform tool. DiagramIO now saves and loads complete networks as versioned JSON; see the [I/O guide](IO.md).
 
 ## Install
 
@@ -90,7 +90,7 @@ Maven compiles the application and runs all six existing check suites through JU
 
 `setAppearance(text, size, font, color)` validates every value before committing any change. Individual setters use the same validation. `Network` provides `addCustomText`, `getCustomText`, `getAllCustomTexts`, `removeCustomText`, and `customTextCount`. It rejects duplicate identities and multiple-network ownership; removing text detaches it. IDs are unique within each object type, as with stations and tracks.
 
-`DiagramEditor` provides `createStation`, `moveStation`, `renameStation`, `createCustomText`, `moveCustomText`, and `editCustomText`. Creation allocates an unused positive ID. Edits reject missing objects and preserve existing data on validation failure. Persistence is still unimplemented.
+`DiagramEditor` provides `createStation`, `moveStation`, `renameStation`, `createCustomText`, `moveCustomText`, and `editCustomText`. Creation allocates an unused positive ID. Edits reject missing objects and preserve existing data on validation failure. JSON persistence preserves these identities and fields.
 
 ## Platform drawing and editing
 
