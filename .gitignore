@@ -9,3 +9,5 @@ src/test/java/*.*
 tests/run-tests.ps1
 /saved_diagrams/*
 !/saved_diagrams/.gitkeep
+/settings.json
+start.bat

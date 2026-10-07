@@ -27,6 +27,7 @@ public final class EditorToolbar extends JToolBar {
         addSeparator();
         add(new JLabel("Node: "));
         JComboBox<String> nodes = new JComboBox<>(new String[]{"Regular", "Stub end"});
+        nodes.setSelectedIndex(panel.getNodeType() == NodeType.REGULAR ? 0 : 1);
         nodes.setToolTipText("Type of node to create");
         nodes.addActionListener(event -> panel.setNodeType(nodes.getSelectedIndex() == 0
                 ? NodeType.REGULAR : NodeType.STUB_END));
@@ -36,11 +37,12 @@ public final class EditorToolbar extends JToolBar {
         JComboBox<String> tracks = new JComboBox<>(new String[]{"Mainline", "Station", "Siding"});
         tracks.setToolTipText("Type of track to create");
         TrackType[] types = {TrackType.MAINLINE, TrackType.STATION, TrackType.SIDING};
+        tracks.setSelectedIndex(panel.getTrackType().ordinal());
         tracks.addActionListener(event -> panel.setTrackType(types[tracks.getSelectedIndex()]));
         add(tracks);
         addSeparator();
         JCheckBox snap = new JCheckBox("Snap to grid", panel.isSnapToGrid());
-        snap.setToolTipText("Place and move objects on a 20-unit grid");
+        snap.setToolTipText("Place and move objects on a " + panel.getGridSpacing() + "-unit grid");
         snap.addActionListener(event -> panel.setSnapToGrid(snap.isSelected()));
         add(snap);
         JCheckBox continuous = new JCheckBox("Continuous Draw", panel.isContinuousDraw());
@@ -48,6 +50,13 @@ public final class EditorToolbar extends JToolBar {
         continuous.addActionListener(event -> panel.setContinuousDraw(continuous.isSelected()));
         panel.addPropertyChangeListener("continuousDraw", event -> continuous.setSelected(panel.isContinuousDraw()));
         add(continuous);
+        panel.addPropertyChangeListener("preferences", event -> {
+            nodes.setSelectedIndex(panel.getNodeType() == NodeType.REGULAR ? 0 : 1);
+            tracks.setSelectedIndex(panel.getTrackType().ordinal());
+            snap.setSelected(panel.isSnapToGrid());
+            snap.setToolTipText("Place and move objects on a " + panel.getGridSpacing() + "-unit grid");
+            continuous.setSelected(panel.isContinuousDraw());
+        });
         // Keep both rows accessible at the minimum window width.
         setLayout(new GridBagLayout());
         Component[] components = getComponents();

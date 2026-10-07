@@ -8,6 +8,7 @@ import java.awt.geom.*;
 import java.util.Objects;
 import javax.swing.*;
 import model.*;
+import settings.AppSettings;
 
 /**
  * DiagramPanel<br>
@@ -22,7 +23,7 @@ public class DiagramPanel extends JPanel {
     public enum Tool { SELECT, ADD_NODE, ADD_TRACK, ADD_STATION, ADD_TEXT, ADD_PLATFORM, PAN }
 
     private static final int HIT_RADIUS = 10;
-    private static final int GRID_SIZE = 20;
+    private AppSettings settings = new AppSettings();
     private final DiagramEditor editor;
     private final Network network;
     private final DiagramViewport viewport = new DiagramViewport();
@@ -65,7 +66,11 @@ public class DiagramPanel extends JPanel {
             @Override public void mousePressed(MouseEvent event){ press(event); }
             @Override public void mouseDragged(MouseEvent event){ drag(event); }
             @Override public void mouseReleased(MouseEvent event){ release(event); }
-            @Override public void mouseWheelMoved(MouseWheelEvent event){ zoomAt(Math.pow(1.15, -event.getPreciseWheelRotation()), event.getPoint()); }
+            @Override public void mouseWheelMoved(MouseWheelEvent event){
+                double direction = settings.invertWheelZoom ? 1 : -1;
+                zoomAt(Math.pow(1 + settings.wheelZoomPercent / 100.0,
+                        direction * event.getPreciseWheelRotation()), event.getPoint());
+            }
             @Override public void mouseMoved(MouseEvent event) {
                 pointer = event.getPoint();
                 hoveredNode = nodeAt(pointer);
@@ -89,10 +94,42 @@ public class DiagramPanel extends JPanel {
         bindToolShortcut("S", Tool.ADD_STATION);
         bindToolShortcut("P", Tool.ADD_PLATFORM);
         bindToolShortcut("X", Tool.ADD_TEXT);
+        editor.getHistory().addListener(() -> firePropertyChange("history", null, editor.getHistory()));
     }
 
     // Selection and editing tools
     public Tool getTool(){ return tool; }
+    public NodeType getNodeType(){ return nodeType; }
+    public TrackType getTrackType(){ return trackType; }
+    public int getGridSpacing(){ return settings.gridSpacing; }
+
+    public void applySettings(AppSettings preferences) {
+        preferences.validate();
+        settings = preferences.copy();
+        clearPendingEdit();
+        setSnapToGrid(settings.snapToGrid);
+        setContinuousDraw(settings.continuousDraw);
+        setNodeType(settings.defaultNodeType);
+        setTrackType(settings.defaultTrackType);
+        setShowDebugNodes(settings.showDebugNodes);
+        setBackground(Color.decode(settings.backgroundColor));
+        editor.getHistory().setLimit(settings.undoLimit);
+        firePropertyChange("preferences", null, settings.copy());
+        repaint();
+    }
+
+    public void undo(){ changeHistory(false); }
+    public void redo(){ changeHistory(true); }
+
+    private void changeHistory(boolean redo) {
+        clearPendingEdit();
+        selectedNode = null; selectedLabel = null; selectedPlatform = null; hoveredNode = null;
+        String name = redo ? editor.getHistory().redoName() : editor.getHistory().undoName();
+        if (redo) { editor.getHistory().redo(); } else { editor.getHistory().undo(); }
+        showStatus(name.isEmpty() ? "No edit to " + (redo ? "redo." : "undo.")
+                : (redo ? "Redid: " : "Undid: ") + name + ".", false);
+        repaint();
+    }
     public Node getSelectedNode(){ return selectedNode; }
     public Platform getSelectedPlatform(){ return selectedPlatform; }
     public Station getSelectedStation(){ return selectedLabel instanceof Station ? (Station) selectedLabel : null; }
@@ -461,7 +498,7 @@ public class DiagramPanel extends JPanel {
 
     // Platform editing and drawing
     protected PlatformDialog.Result requestPlatform(Platform existing, TrackSegment track) {
-        return new PlatformDialog(editor, existing, track).showDialog(this);
+        return new PlatformDialog(editor, existing, track, settings).showDialog(this);
     }
 
     private void applyPlatformDialog(Platform existing, TrackSegment track) {
@@ -555,9 +592,9 @@ public class DiagramPanel extends JPanel {
         JComboBox<String> font = new JComboBox<>(GraphicsEnvironment
                 .getLocalGraphicsEnvironment().getAvailableFontFamilyNames());
         font.setEditable(true);
-        font.setSelectedItem(existing == null ? Font.SANS_SERIF : existing.getFont());
-        JTextField size = new JTextField(existing == null ? "16" : "" + existing.getSize());
-        JTextField color = new JTextField(existing == null ? "#000000" : existing.getColor());
+        font.setSelectedItem(existing == null ? settings.textFont : existing.getFont());
+        JTextField size = new JTextField(existing == null ? "" + settings.textSize : "" + existing.getSize());
+        JTextField color = new JTextField(existing == null ? settings.textColor : existing.getColor());
         JPanel form = new JPanel(new GridLayout(0, 1, 4, 4));
         form.add(new JLabel("Text (multiple lines supported):"));
         form.add(new JScrollPane(text));
@@ -668,8 +705,8 @@ public class DiagramPanel extends JPanel {
     private Point placement(Point2D point) {
         double x = point.getX(), y = point.getY();
         if (snapToGrid) {
-            x = Math.round(x / GRID_SIZE) * (double) GRID_SIZE;
-            y = Math.round(y / GRID_SIZE) * (double) GRID_SIZE;
+            x = Math.round(x / settings.gridSpacing) * (double) settings.gridSpacing;
+            y = Math.round(y / settings.gridSpacing) * (double) settings.gridSpacing;
         }
         if (!Double.isFinite(x) || !Double.isFinite(y) || x < Integer.MIN_VALUE
                 || x > Integer.MAX_VALUE || y < Integer.MIN_VALUE || y > Integer.MAX_VALUE) {
@@ -697,8 +734,11 @@ public class DiagramPanel extends JPanel {
         super.paintComponent(graphics);
         Graphics2D g = (Graphics2D) graphics.create();
         try {
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            if (snapToGrid) { drawGrid(g); }
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, settings.antialiasing
+                    ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, settings.antialiasing
+                    ? RenderingHints.VALUE_TEXT_ANTIALIAS_ON : RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+            if (settings.showGrid) { drawGrid(g); }
             Point2D origin = worldToScreen(new Point(0, 0));
             g.translate(origin.getX(), origin.getY());
             g.scale(getZoom(), getZoom());
@@ -735,12 +775,12 @@ public class DiagramPanel extends JPanel {
     }
 
     private void drawGrid(Graphics2D g) {
-        double step = GRID_SIZE * getZoom();
+        double step = settings.gridSpacing * getZoom();
         while (step < 8) { step *= 2; }
         Point2D origin = worldToScreen(new Point());
         double firstX = origin.getX() - Math.ceil(origin.getX() / step) * step;
         double firstY = origin.getY() - Math.ceil(origin.getY() / step) * step;
-        g.setColor(new Color(235, 239, 243));
+        g.setColor(Color.decode(settings.gridColor));
         for (double x = firstX; x < getWidth(); x += step) {
             for (double y = firstY; y < getHeight(); y += step) { g.fillRect((int) x, (int) y, 1, 1); }
         }

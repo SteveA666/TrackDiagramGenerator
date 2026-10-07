@@ -4,6 +4,7 @@ import editor.DiagramEditor;
 import java.awt.*;
 import javax.swing.*;
 import model.*;
+import settings.AppSettings;
 
 /**
  * PlatformDialog<br>
@@ -38,6 +39,10 @@ public final class PlatformDialog extends JPanel {
     }
 
     public PlatformDialog(DiagramEditor editor, Platform existing, TrackSegment track) {
+        this(editor, existing, track, new AppSettings());
+    }
+
+    public PlatformDialog(DiagramEditor editor, Platform existing, TrackSegment track, AppSettings settings) {
         this.editor = editor;
         this.existing = existing;
         Network network = editor.getNetwork();
@@ -58,6 +63,11 @@ public final class PlatformDialog extends JPanel {
         add(identity, BorderLayout.NORTH);
         first = new EdgeFields(network, "First edge");
         second = new EdgeFields(network, "Second edge (islands only)");
+        for (EdgeFields fields : new EdgeFields[]{first, second}) {
+            fields.start.setText("" + settings.platformStartPercent);
+            fields.end.setText("" + settings.platformEndPercent);
+            fields.offset.setText("" + settings.platformOffset);
+        }
         JPanel edges = new JPanel(new GridLayout(1, 2, 10, 0));
         edges.add(first); edges.add(second);
         add(edges, BorderLayout.CENTER);

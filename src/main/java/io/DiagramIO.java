@@ -24,6 +24,10 @@ public final class DiagramIO {
 
     /** Validate before touching the destination, then replace it from a sibling temp file. */
     public static void save(Network network, Path path) throws IOException {
+        save(network, path, false);
+    }
+
+    public static void save(Network network, Path path, boolean backup) throws IOException {
         String data = toJson(network);
         fromJson(data);
         Path target = path.toAbsolutePath().normalize();
@@ -31,6 +35,9 @@ public final class DiagramIO {
         Path temporary = Files.createTempFile(target.getParent(), ".diagram-", ".tmp");
         try {
             Files.writeString(temporary, data + "\n", StandardCharsets.UTF_8);
+            if (backup && Files.isRegularFile(target)) {
+                Files.copy(target, target.resolveSibling(target.getFileName() + ".bak"), StandardCopyOption.REPLACE_EXISTING);
+            }
             try {
                 Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException unsupported) {

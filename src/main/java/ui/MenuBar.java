@@ -27,18 +27,54 @@ public class MenuBar extends JMenuBar {
         void onAbout();
         void onSettings();
         void onSetDebugNodes(boolean visible);
+        default void onUndo() {}
+        default void onRedo() {}
     }
 
     private final MenuActions menuActions;
+    private final JMenuItem undo = new JMenuItem("Undo"), redo = new JMenuItem("Redo");
+    private final JCheckBoxMenuItem debugItem = new JCheckBoxMenuItem("Toggle Debug Nodes");
 
     public MenuBar(MenuActions menuActions) {
         this.menuActions = menuActions;
         buildFileMenu();
+        buildEditMenu();
         buildViewMenu();
         buildHelpMenu();
     }
 
     // Menu construction
+    private void buildEditMenu() {
+        JMenu edit = new JMenu("Edit");
+        edit.setMnemonic('E');
+        int shortcut = GraphicsEnvironment.isHeadless() ? InputEvent.CTRL_DOWN_MASK
+                : Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+        undo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, shortcut));
+        redo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Y, shortcut));
+        undo.addActionListener(event -> menuActions.onUndo());
+        redo.addActionListener(event -> menuActions.onRedo());
+        getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_Z,
+                shortcut | InputEvent.SHIFT_DOWN_MASK), "redo");
+        getActionMap().put("redo", new AbstractAction() {
+            @Override public void actionPerformed(java.awt.event.ActionEvent event) {
+                if (redo.isEnabled()) { menuActions.onRedo(); }
+            }
+        });
+        undo.setEnabled(false); redo.setEnabled(false);
+        edit.add(undo); edit.add(redo);
+        edit.addSeparator();
+        edit.add(menuItem("Settings...", event -> menuActions.onSettings()));
+        add(edit);
+    }
+
+    public void updateHistory(editor.EditHistory history) {
+        undo.setEnabled(history.canUndo()); redo.setEnabled(history.canRedo());
+        undo.setText(history.canUndo() ? "Undo " + history.undoName() : "Undo");
+        redo.setText(history.canRedo() ? "Redo " + history.redoName() : "Redo");
+    }
+
+    public void setDebugNodesSelected(boolean selected) { debugItem.setSelected(selected); }
+
     private void buildFileMenu() {
         JMenu fileMenu = new JMenu("File");
         fileMenu.setMnemonic('F');
@@ -60,7 +96,6 @@ public class MenuBar extends JMenuBar {
         JMenu viewMenu = new JMenu("View");
         viewMenu.setMnemonic('V');
 
-        JCheckBoxMenuItem debugItem = new JCheckBoxMenuItem("Toggle Debug Nodes");
         debugItem.addActionListener(e -> menuActions.onSetDebugNodes(debugItem.isSelected()));
         viewMenu.add(debugItem);
         viewMenu.addSeparator();

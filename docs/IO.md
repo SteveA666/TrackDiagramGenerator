@@ -57,4 +57,6 @@ The loader requires strict JSON and rejects duplicate properties, unsupported ve
 
 `DiagramStore` handles the dedicated directory and filenames; `DiagramDocument` tracks the active network, filename, and saved contents independently of Swing. Gson is bundled into the executable JAR by Maven Shade, so the normal `java -jar` command still works.
 
+Saving preserves undo history; New/Open reset it only after success. Optional previous-save backups and other preferences are described in the [settings and history guide](SETTINGS_AND_HISTORY.md).
+
 Run `.\mvnw.cmd verify` for persistence round trips, UTF-8 text, reference restoration, validation failures, save failure handling, document state, loaded-canvas rendering, and File menu shortcuts, together with the existing editor/model tests.

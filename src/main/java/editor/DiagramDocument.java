@@ -11,7 +11,9 @@ import model.Network;
 public final class DiagramDocument {
     private final DiagramStore store;
     private Network network;
+    private DiagramEditor editor;
     private Path path;
+    private boolean backupOnSave;
     private String savedContents = DiagramIO.toJson(new Network());
 
     public DiagramDocument(DiagramStore store) { this(store, new Network()); }
@@ -19,15 +21,19 @@ public final class DiagramDocument {
     public DiagramDocument(DiagramStore store, Network network) {
         this.store = Objects.requireNonNull(store);
         this.network = Objects.requireNonNull(network);
+        this.editor = new DiagramEditor(network);
     }
 
     public DiagramStore getStore() { return store; }
     public Network getNetwork() { return network; }
+    public DiagramEditor getEditor() { return editor; }
+    public void setBackupOnSave(boolean enabled) { backupOnSave = enabled; }
     public Path getPath() { return path; }
     public boolean isDirty() { return !savedContents.equals(DiagramIO.toJson(network)); }
 
     public void newDiagram() {
         network = new Network();
+        editor = new DiagramEditor(network);
         path = null;
         savedContents = DiagramIO.toJson(network);
     }
@@ -38,6 +44,7 @@ public final class DiagramDocument {
         String contents = DiagramIO.toJson(loaded);
         // Neither the active network nor file identity changes until the complete load succeeds.
         network = loaded;
+        editor = new DiagramEditor(network);
         path = candidate;
         savedContents = contents;
     }
@@ -49,7 +56,7 @@ public final class DiagramDocument {
 
     public void saveAs(String filename) throws IOException {
         Path candidate = store.resolve(filename);
-        DiagramIO.save(network, candidate);
+        DiagramIO.save(network, candidate, backupOnSave);
         path = candidate;
         savedContents = DiagramIO.toJson(network);
     }

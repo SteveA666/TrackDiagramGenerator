@@ -2,7 +2,7 @@
 
 A Java Swing editor for creating and drawing railway track diagrams. Its scope is diagram layout: nodes, track connections, stations, platforms, and custom text. It does not simulate trains, services, or timetables.
 
-**Work in progress:** diagrams can be edited, saved, and reopened as JSON files in `saved_diagrams/`. Image export and undo/redo remain planned.
+**Work in progress:** diagrams can be edited with undo/redo, saved, and reopened as JSON files in `saved_diagrams/`. Persistent settings customize the editor. Image export remains planned.
 
 ## Features
 
@@ -15,11 +15,14 @@ A Java Swing editor for creating and drawing railway track diagrams. Its scope i
 - Create and draw numbered side and island platforms attached to station tracks.
 - Double-click platforms to edit their number, tracks, sides, extents, and offsets, or delete them.
 - Toggle Continuous Draw to use each completed track endpoint as the next starting point.
-- Enable or disable snapping to a 20-unit grid.
+- Enable or disable snapping to a configurable grid (20 units by default).
 - Pan, zoom around the pointer, fit the diagram, and reset the view.
 - Draw U-shaped stub-end markers oriented to their connected tracks.
 - Display validation feedback in the status bar and optional debug-node circles.
 - Save and reopen complete diagrams as versioned UTF-8 JSON, with unsaved-change prompts.
+- Undo and redo committed edits, including complete track gestures and platform changes.
+- Customize editing, appearance, navigation, object defaults, and save behavior in Settings.
+- Set window dimensions or maximized startup; reset preferences from `default.json`.
 
 Stations are drawn as a square marker with their name. Platforms are filled, numbered surfaces that follow their supporting tracks.
 
@@ -34,7 +37,7 @@ From the project root in PowerShell:
 java -jar target/track-diagram-generator-0.1.0-SNAPSHOT.jar
 ```
 
-Run only the tests with `.\mvnw.cmd test` or `./tests/run-tests.ps1`. The six existing check suites and JSON persistence tests run through JUnit in headless mode. Reports are written to `target/surefire-reports/`. `start.bat` builds, tests, and launches the application; `start.bat --build-only` only builds and tests.
+Run only the tests with `.\mvnw.cmd test` or `./tests/run-tests.ps1`. Model, editor, canvas, JSON persistence, undo/redo, and settings tests run through JUnit in headless mode. Reports are written to `target/surefire-reports/`. `start.bat` builds, tests, and launches the application; `start.bat --build-only` only builds and tests.
 
 Choose **New Network** in the startup dialogue to open an empty diagram, or **Open Network...** to choose a saved JSON diagram. `SampleNetwork` remains available in the source as a small example fixture.
 
@@ -48,6 +51,8 @@ Use **File > Save** to name and save a diagram in the project's `saved_diagrams/
 
 | Action | Control |
 | --- | --- |
+| Undo / Redo | **Edit > Undo / Ctrl+Z**, **Edit > Redo / Ctrl+Y** or **Ctrl+Shift+Z** |
+| Preferences | **Edit > Settings...** or **View > Settings** |
 | Create or open a diagram | **File > New** / **Ctrl+N**, **File > Open...** / **Ctrl+O** |
 | Save or save under another name | **File > Save** / **Ctrl+S**, **File > Save As...** / **Ctrl+Shift+S** |
 | Select or move an object | **Select / Move**, then click or drag a node handle, station marker/name, or text |
@@ -128,13 +133,16 @@ src/main/java/
   Main.java               Application entry point
   Launcher.java           Startup dialogue and window creation
   SampleNetwork.java      Example network fixture
-  editor/                 Validated editing operations
+  editor/                 Validated editing operations, document state, and undo history
   model/                  Network, nodes, tracks, stations, platforms, and custom text
   ui/                     Swing windows, canvas, toolbars, and view transforms
   io/                     JSON encoding, validation, and the saved-diagram folder
+  settings/               Validated preferences and settings-file persistence
 src/test/java/            JUnit entry points for the existing check suites
 docs/                     Editor and model guides
 saved_diagrams/           User-created JSON diagrams (ignored by Git)
+default.json              Default preferences, also bundled into the application JAR
+settings.json             Saved user preferences (created on save, ignored by Git)
 ```
 
 `target/` contains compiled classes, test reports, and the executable JAR. Build output is ignored by Git.
@@ -142,9 +150,9 @@ saved_diagrams/           User-created JSON diagrams (ignored by Git)
 ## Remaining work
 
 - Image export.
-- Undo/redo and node/track deletion tools.
+- Node/track deletion tools.
 - Properties editing for existing nodes and tracks.
 
-Export and Settings remain placeholders. New, Open, Save, Save As, and Exit are implemented.
+Export remains a placeholder. New, Open, Save, Save As, Exit, Undo/Redo, and Settings are implemented. See the [settings and history guide](docs/SETTINGS_AND_HISTORY.md).
 
 Earlier documentation was fully or partially generated by DeepSeek V4.1 Flash. This README was updated with assistance from Codex.

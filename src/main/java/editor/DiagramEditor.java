@@ -13,14 +13,23 @@ import model.*;
  */
 public final class DiagramEditor {
     private final Network network;
+    private final EditHistory history;
 
-    public DiagramEditor(Network network){ this.network = Objects.requireNonNull(network, "A diagram network is required."); }
+    public DiagramEditor(Network network){
+        this.network = Objects.requireNonNull(network, "A diagram network is required.");
+        this.history = new EditHistory(network);
+    }
 
     // Network access
     public Network getNetwork(){ return network; }
+    public EditHistory getHistory(){ return history; }
 
     // Node editing
     public Node createNode(int x, int y, NodeType type) {
+        return history.perform("Add node", () -> createNodeImpl(x, y, type));
+    }
+
+    private Node createNodeImpl(int x, int y, NodeType type) {
         if (type == null) { throw new IllegalArgumentException("Choose a node type."); }
         Set<Integer> used = new HashSet<>();
         for (Node node : network.getAllNodes()) { used.add(node.getId()); }
@@ -34,6 +43,10 @@ public final class DiagramEditor {
      * coordinate.<br>
      */
     public void moveNode(int nodeId, int x, int y) {
+        history.perform("Move node", () -> { moveNodeImpl(nodeId, x, y); return null; });
+    }
+
+    private void moveNodeImpl(int nodeId, int x, int y) {
         Node node = requireNode(nodeId);
         for (TrackSegment segment : network.segmentsAt(nodeId)) {
             Node other = segment.getStart() == node ? segment.getEnd() : segment.getStart();
@@ -60,6 +73,10 @@ public final class DiagramEditor {
 
     // Track editing
     public TrackSegment createTrack(int startId, int endId, TrackType type) {
+        return history.perform("Add track", () -> createTrackImpl(startId, endId, type));
+    }
+
+    private TrackSegment createTrackImpl(int startId, int endId, TrackType type) {
         if (type == null) { throw new IllegalArgumentException("Choose a track type."); }
         Node start = requireNode(startId);
         Node end = requireNode(endId);
@@ -82,6 +99,12 @@ public final class DiagramEditor {
      * Existing nodes at those coordinates are reused.<br>
      */
     public TrackSegment createTrackBetween(Integer startId, int startX, int startY,
+            Integer endId, int endX, int endY, NodeType nodeType, TrackType trackType) {
+        return history.perform("Add track", () -> createTrackBetweenImpl(startId, startX, startY,
+                endId, endX, endY, nodeType, trackType));
+    }
+
+    private TrackSegment createTrackBetweenImpl(Integer startId, int startX, int startY,
             Integer endId, int endX, int endY, NodeType nodeType, TrackType trackType) {
         if (nodeType == null || trackType == null) {
             throw new IllegalArgumentException("Choose node and track types.");
@@ -112,6 +135,10 @@ public final class DiagramEditor {
 
     // Station editing
     public Station createStation(String name, int x, int y) {
+        return history.perform("Add station", () -> createStationImpl(name, x, y));
+    }
+
+    private Station createStationImpl(String name, int x, int y) {
         Set<Integer> used = new HashSet<>();
         for (Station station : network.getAllStations()) { used.add(station.getId()); }
         Station station = new Station(nextId(used), name, x, y);
@@ -119,8 +146,12 @@ public final class DiagramEditor {
         return station;
     }
 
-    public void moveStation(int id, int x, int y){ requireStation(id).setPosition(x, y); }
-    public void renameStation(int id, String name){ requireStation(id).setName(name); }
+    public void moveStation(int id, int x, int y){
+        history.perform("Move station", () -> { requireStation(id).setPosition(x, y); return null; });
+    }
+    public void renameStation(int id, String name){
+        history.perform("Rename station", () -> { requireStation(id).setName(name); return null; });
+    }
 
     private Station requireStation(int id) {
         Station station = network.getStation(id);
@@ -130,6 +161,10 @@ public final class DiagramEditor {
 
     // Platform editing
     public Platform createPlatform(int stationId, int number, PlatformEdge... edges) {
+        return history.perform("Add platform", () -> createPlatformImpl(stationId, number, edges));
+    }
+
+    private Platform createPlatformImpl(int stationId, int number, PlatformEdge... edges) {
         Platform platform = new Platform(number, edges);
         validatePlatform(stationId, null, platform);
         requireStation(stationId).addPlatform(platform);
@@ -137,6 +172,10 @@ public final class DiagramEditor {
     }
 
     public void editPlatform(int stationId, int oldNumber, int number, PlatformEdge... edges) {
+        history.perform("Edit platform", () -> { editPlatformImpl(stationId, oldNumber, number, edges); return null; });
+    }
+
+    private void editPlatformImpl(int stationId, int oldNumber, int number, PlatformEdge... edges) {
         Platform existing = requirePlatform(stationId, oldNumber);
         Platform replacement = new Platform(number, edges);
         validatePlatform(stationId, existing, replacement);
@@ -144,6 +183,10 @@ public final class DiagramEditor {
     }
 
     public void deletePlatform(int stationId, int number) {
+        history.perform("Delete platform", () -> { deletePlatformImpl(stationId, number); return null; });
+    }
+
+    private void deletePlatformImpl(int stationId, int number) {
         requirePlatform(stationId, number);
         requireStation(stationId).removePlatform(number);
     }
@@ -174,6 +217,10 @@ public final class DiagramEditor {
 
     // Custom text editing
     public CustomText createCustomText(String text, int x, int y, int size, String font, String color) {
+        return history.perform("Add text", () -> createCustomTextImpl(text, x, y, size, font, color));
+    }
+
+    private CustomText createCustomTextImpl(String text, int x, int y, int size, String font, String color) {
         Set<Integer> used = new HashSet<>();
         for (CustomText label : network.getAllCustomTexts()) { used.add(label.getId()); }
         CustomText label = new CustomText(text, x, y, size, font, color, nextId(used));
@@ -181,9 +228,11 @@ public final class DiagramEditor {
         return label;
     }
 
-    public void moveCustomText(int id, int x, int y){ requireCustomText(id).setPosition(x, y); }
+    public void moveCustomText(int id, int x, int y){
+        history.perform("Move text", () -> { requireCustomText(id).setPosition(x, y); return null; });
+    }
     public void editCustomText(int id, String text, int size, String font, String color) {
-        requireCustomText(id).setAppearance(text, size, font, color);
+        history.perform("Edit text", () -> { requireCustomText(id).setAppearance(text, size, font, color); return null; });
     }
 
     private CustomText requireCustomText(int id) {

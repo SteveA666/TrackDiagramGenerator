@@ -9,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import editor.DiagramDocument;
 import io.DiagramStore;
+import settings.AppSettings;
+import settings.SettingsStore;
 
 import model.*;
 
@@ -20,6 +22,9 @@ import model.*;
 public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
     private DiagramPanel diagramPanel;
     private final DiagramDocument document;
+    private final MenuBar menuBar;
+    private final SettingsStore settingsStore = SettingsStore.defaultStore();
+    private AppSettings settings = new AppSettings();
 
     public ProgramWindow(Network network) {
         this(new DiagramDocument(DiagramStore.defaultStore(), network));
@@ -27,23 +32,48 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
 
     public ProgramWindow(DiagramDocument document) {
         this.document = document;
-        setSize(800, 600);
-        setMinimumSize(new Dimension(800, 400));
+        try { settings = settingsStore.load(); }
+        catch (IOException failure) {
+            try { settings = settingsStore.loadDefaults(); }
+            catch (IOException defaultsFailure) { failure.addSuppressed(defaultsFailure); }
+            SwingUtilities.invokeLater(() -> DiagramFileDialogs.showError(this, "Load settings (using defaults)", failure));
+        }
+        document.setBackupOnSave(settings.backupOnSave);
+        applyWindowSettings();
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override public void windowClosing(WindowEvent event) { onExit(); }
         });
-        setLocationRelativeTo(null);
-        setJMenuBar(new MenuBar(this));
-        installDiagram(document.getPath() != null);
+        menuBar = new MenuBar(this);
+        setJMenuBar(menuBar);
+        installDiagram(document.getPath() != null && settings.fitOnOpen);
+    }
+
+    private void applyWindowSettings() {
+        GraphicsConfiguration configuration = getGraphicsConfiguration();
+        Rectangle screen = new Rectangle(configuration.getBounds());
+        Insets insets = Toolkit.getDefaultToolkit().getScreenInsets(configuration);
+        screen.x += insets.left; screen.y += insets.top;
+        screen.width -= insets.left + insets.right; screen.height -= insets.top + insets.bottom;
+        setExtendedState(JFrame.NORMAL);
+        setMinimumSize(new Dimension(Math.min(800, screen.width), Math.min(400, screen.height)));
+        setBounds(WindowPreferences.bounds(settings, screen));
+        if (settings.startMaximized) { setExtendedState(JFrame.MAXIMIZED_BOTH); }
     }
 
     private void installDiagram(boolean fit) {
-        boolean debug = diagramPanel != null && diagramPanel.isShowDebugNodes();
+        boolean debug = diagramPanel == null ? settings.showDebugNodes : diagramPanel.isShowDebugNodes();
         if (diagramPanel != null) { diagramPanel.cancelInteraction(); }
         setContentPane(new JPanel(new BorderLayout()));
-        diagramPanel = new DiagramPanel(document.getNetwork());
+        diagramPanel = new DiagramPanel(document.getEditor());
+        diagramPanel.applySettings(settings);
         diagramPanel.setShowDebugNodes(debug);
+        menuBar.setDebugNodesSelected(debug);
+        menuBar.updateHistory(document.getEditor().getHistory());
+        diagramPanel.addPropertyChangeListener("history", event -> {
+            menuBar.updateHistory(document.getEditor().getHistory());
+            updateTitle();
+        });
         JPanel controls = new JPanel(new BorderLayout());
         controls.add(new EditorToolbar(diagramPanel), BorderLayout.NORTH);
         controls.add(new NavigationToolbar(diagramPanel), BorderLayout.SOUTH);
@@ -86,7 +116,7 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
             String name = DiagramFileDialogs.chooseOpen(this, document.getStore());
             if (name == null) { return; }
             document.open(name);
-            installDiagram(true);
+            installDiagram(settings.fitOnOpen);
         } catch (IOException | IllegalArgumentException failure) {
             DiagramFileDialogs.showError(this, "Open", failure);
         }
@@ -112,7 +142,7 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
                         DiagramFileDialogs.showError(this, "Save", failure);
                         continue;
                     }
-                    if (Files.exists(target) && JOptionPane.showConfirmDialog(this,
+                    if (settings.confirmOverwrite && Files.exists(target) && JOptionPane.showConfirmDialog(this,
                             "Replace " + target.getFileName() + "?", "Confirm overwrite",
                             JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
                         continue;
@@ -144,7 +174,45 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
 
     // View actions
     @Override public void onSetDebugNodes(boolean visible){ diagramPanel.setShowDebugNodes(visible); }
-    @Override public void onSettings(){ JOptionPane.showMessageDialog(this, "Settings (TODO)"); }
+    @Override public void onUndo(){ changeHistory(false); }
+    @Override public void onRedo(){ changeHistory(true); }
+
+    private void changeHistory(boolean redo) {
+        try {
+            if (redo) { diagramPanel.redo(); } else { diagramPanel.undo(); }
+        } catch (IllegalStateException failure) { DiagramFileDialogs.showError(this, redo ? "Redo" : "Undo", failure); }
+    }
+
+    @Override public void onSettings() {
+        diagramPanel.cancelInteraction();
+        SettingsPanel form = new SettingsPanel(settings);
+        boolean resetRequested = false;
+        String[] actions = {"Save settings", "Cancel", "Reset defaults"};
+        while (true) {
+            int choice = JOptionPane.showOptionDialog(this, form, "Settings", JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.PLAIN_MESSAGE, null, actions, actions[0]);
+            if (choice == 2) {
+                try { form.load(settingsStore.loadDefaults()); resetRequested = true; }
+                catch (IOException failure) { DiagramFileDialogs.showError(this, "Reset defaults", failure); }
+                continue;
+            }
+            if (choice != 0) { return; }
+            try {
+                AppSettings draft = form.readSettings();
+                settingsStore.save(draft);
+                boolean resize = resetRequested || settings.windowWidth != draft.windowWidth || settings.windowHeight != draft.windowHeight
+                        || settings.startMaximized != draft.startMaximized;
+                settings = draft;
+                if (resize) { applyWindowSettings(); }
+                document.setBackupOnSave(settings.backupOnSave);
+                diagramPanel.applySettings(settings);
+                menuBar.setDebugNodesSelected(settings.showDebugNodes);
+                return;
+            } catch (IOException | IllegalArgumentException failure) {
+                DiagramFileDialogs.showError(this, "Save settings", failure);
+            }
+        }
+    }
 
     // Help actions
     @Override public void onAbout(){ JOptionPane.showMessageDialog(this, "Track Diagram Generator\nVersion 0.0.1\nInternal"); }
