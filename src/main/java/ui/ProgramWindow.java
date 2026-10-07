@@ -166,7 +166,12 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
                 null, new String[]{"Save", "Discard", "Cancel"}, "Save");
         return choice == 1 || (choice == 0 && save(false));
     }
-    @Override public void onExport(){ JOptionPane.showMessageDialog(this, "Export (TODO)"); }
+    @Override public void onExport() {
+        try { DiagramPanel.imageSize(document.getEditor().getNetwork(), 0.01, 0); }
+        catch (IllegalArgumentException failure) { DiagramFileDialogs.showError(this, "Export image", failure); return; }
+        String name = document.getPath() == null ? "Untitled" : document.getPath().getFileName().toString().replaceFirst("(?i)\\.json$", "");
+        ImageExportDialog.show(this, document.getEditor().getNetwork(), name, diagramPanel.getBackground());
+    }
     @Override public void onExit() {
         diagramPanel.cancelInteraction();
         if (confirmDiscard()) { dispose(); }

@@ -5,6 +5,7 @@ import editor.PlatformGeometry;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
+import java.awt.image.BufferedImage;
 import java.util.Objects;
 import javax.swing.*;
 import model.*;
@@ -28,6 +29,7 @@ public class DiagramPanel extends JPanel {
     private final Network network;
     private final DiagramViewport viewport = new DiagramViewport();
     private boolean showDebugNodes;
+    private boolean exportRendering;
     private boolean snapToGrid = true;
     private boolean continuousDraw;
     private Tool tool = Tool.SELECT;
@@ -203,9 +205,16 @@ public class DiagramPanel extends JPanel {
 
     public void fitToDiagram() {
         clearPendingEdit();
+        Rectangle2D bounds = diagramBounds();
+        if (bounds == null) { resetView(); return; }
+        viewport.fit(bounds, getWidth(), getHeight());
+        viewChanged();
+    }
+
+    private Rectangle2D diagramBounds() {
         Rectangle2D bounds = null;
         for (Node node : network.getAllNodes()) {
-            Rectangle2D item = new Rectangle2D.Double(node.getX() - 12.0, node.getY() - 12.0, 24, 24);
+            Rectangle2D item = new Rectangle2D.Double(node.getX() - 16.0, node.getY() - 16.0, 32, 32);
             bounds = bounds == null ? item : bounds.createUnion(item);
         }
         for (Station station : network.getAllStations()) {
@@ -222,9 +231,47 @@ public class DiagramPanel extends JPanel {
                 if (item != null) { bounds = bounds == null ? item : bounds.createUnion(item); }
             }
         }
-        if (bounds == null) { resetView(); return; }
-        viewport.fit(bounds, getWidth(), getHeight());
-        viewChanged();
+        return bounds;
+    }
+
+    /** Renders committed content through a fresh canvas, independent of editor gestures and view. */
+    public static BufferedImage renderImage(Network network, double scale, int padding, Color background) {
+        DiagramPanel canvas = new DiagramPanel(network);
+        canvas.exportRendering = true;
+        Rectangle2D bounds = canvas.diagramBounds();
+        if (bounds == null) { throw new IllegalArgumentException("The diagram is empty."); }
+        Dimension size = exportSize(bounds, scale, padding);
+        BufferedImage image = new BufferedImage(size.width, size.height,
+                background == null ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = image.createGraphics();
+        try {
+            if (background != null) { g.setColor(background); g.fillRect(0, 0, size.width, size.height); }
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g.translate(padding + 2 * scale, padding + 2 * scale);
+            g.scale(scale, scale);
+            g.translate(-bounds.getMinX(), -bounds.getMinY());
+            canvas.drawDiagram(g);
+        } finally { g.dispose(); }
+        return image;
+    }
+
+    public static Dimension imageSize(Network network, double scale, int padding) {
+        Rectangle2D bounds = new DiagramPanel(network).diagramBounds();
+        if (bounds == null) { throw new IllegalArgumentException("The diagram is empty."); }
+        return exportSize(bounds, scale, padding);
+    }
+
+    private static Dimension exportSize(Rectangle2D bounds, double scale, int padding) {
+        if (!Double.isFinite(scale) || scale <= 0 || scale > 8 || padding < 0 || padding > 1000) {
+            throw new IllegalArgumentException("Use a scale above 0 and up to 800%, and padding from 0 to 1000 pixels.");
+        }
+        double width = Math.ceil((bounds.getWidth() + 4) * scale) + 2.0 * padding;
+        double height = Math.ceil((bounds.getHeight() + 4) * scale) + 2.0 * padding;
+        if (width > 16384 || height > 16384 || width * height > 40_000_000) {
+            throw new IllegalArgumentException("Image is too large (maximum 16,384 pixels per side and 40 million pixels). Reduce scale or padding.");
+        }
+        return new Dimension(Math.max(1, (int) width), Math.max(1, (int) height));
     }
 
     private void viewChanged() {
@@ -689,7 +736,7 @@ public class DiagramPanel extends JPanel {
             g.drawString(line, (float) at.x + offset, baseline);
             baseline += metrics.getHeight();
         }
-        if (label == selectedLabel) {
+        if (!exportRendering && label == selectedLabel) {
             g.setColor(new Color(30, 115, 210));
             g.setStroke(new BasicStroke((float) (1 / getZoom())));
             g.draw(labelBounds(label));
@@ -742,6 +789,11 @@ public class DiagramPanel extends JPanel {
             Point2D origin = worldToScreen(new Point(0, 0));
             g.translate(origin.getX(), origin.getY());
             g.scale(getZoom(), getZoom());
+            drawDiagram(g);
+        } finally { g.dispose(); }
+    }
+
+    private void drawDiagram(Graphics2D g) {
             for (Station station : network.getAllStations()) {
                 for (Platform platform : station.getPlatforms()) { drawPlatform(g, platform); }
             }
@@ -750,7 +802,7 @@ public class DiagramPanel extends JPanel {
             for (TrackSegment segment : network.getAllTrackSegments()) {
                 g.draw(new Line2D.Double(displayPosition(segment.getStart()), displayPosition(segment.getEnd())));
             }
-            if (tool == Tool.ADD_PLATFORM && pointer != null) {
+            if (!exportRendering && tool == Tool.ADD_PLATFORM && pointer != null) {
                 TrackSegment hovered = trackAt(pointer);
                 if (hovered != null) {
                     g.setColor(new Color(195, 120, 20));
@@ -761,7 +813,7 @@ public class DiagramPanel extends JPanel {
             for (Node node : network.getAllNodes()) { drawNode(g, node); }
             for (Station station : network.getAllStations()) { drawLabel(g, station); }
             for (CustomText text : network.getAllCustomTexts()) { drawLabel(g, text); }
-            if (connectionStart != null && pointer != null) {
+            if (!exportRendering && connectionStart != null && pointer != null) {
                 Node end = nodeAt(pointer);
                 Point finish;
                 try { finish = end == null ? placement(screenToWorld(pointer)) : positionOf(end); }
@@ -771,7 +823,6 @@ public class DiagramPanel extends JPanel {
                         BasicStroke.JOIN_MITER, 10, new float[]{(float) (6 / getZoom()), (float) (4 / getZoom())}, 0));
                 g.draw(new Line2D.Double(connectionStart, finish));
             }
-        } finally { g.dispose(); }
     }
 
     private void drawGrid(Graphics2D g) {
@@ -788,6 +839,10 @@ public class DiagramPanel extends JPanel {
 
     private void drawNode(Graphics2D g, Node node) {
         Point position = displayPosition(node);
+        if (exportRendering) {
+            if (node.getNodeType() == NodeType.STUB_END) { drawStubEnd(g, node, position); }
+            return;
+        }
         double x = position.x, y = position.y;
         g.setStroke(new BasicStroke(1f));
         if (showDebugNodes) {
