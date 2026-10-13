@@ -2,6 +2,9 @@ package ui;
 
 import editor.DiagramEditor;
 import java.awt.*;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.util.Comparator;
 import javax.swing.*;
 import model.*;
 import settings.AppSettings;
@@ -43,6 +46,10 @@ public final class PlatformDialog extends JPanel {
     }
 
     public PlatformDialog(DiagramEditor editor, Platform existing, TrackSegment track, AppSettings settings) {
+        this(editor, existing, track, settings, null);
+    }
+
+    public PlatformDialog(DiagramEditor editor, Platform existing, TrackSegment track, AppSettings settings, Point2D placement) {
         this.editor = editor;
         this.existing = existing;
         Network network = editor.getNetwork();
@@ -74,11 +81,8 @@ public final class PlatformDialog extends JPanel {
         add(new JLabel("Sides use screen directions. Extents follow track start to end as percentages."),
                 BorderLayout.SOUTH);
         if (track != null) { first.tracks.setSelectedItem(track); }
-        if (network.segmentCount() > 1) {
-            for (TrackSegment candidate : network.getAllTrackSegments()) {
-                if (candidate != first.tracks.getSelectedItem()) { second.tracks.setSelectedItem(candidate); break; }
-            }
-        }
+        first.tracks.addActionListener(event -> sortSecondTracks(network));
+        sortSecondTracks(network);
         second.side.setSelectedIndex(1);
         if (existing != null) {
             stations.setSelectedItem(existing.getStation());
@@ -88,11 +92,74 @@ public final class PlatformDialog extends JPanel {
             first.load(existing.getEdges().get(0));
             if (existing.isIslandPlatform()) { second.load(existing.getEdges().get(1)); }
         } else {
+            TrackSegment chosen = (TrackSegment) first.tracks.getSelectedItem();
+            Point2D location = placement != null ? placement : chosen == null ? null : midpoint(chosen);
+            if (location != null) {
+                Station nearest = network.getAllStations().stream()
+                        .min(Comparator.comparingDouble((Station station) -> location.distanceSq(station.getX(), station.getY()))
+                                .thenComparingInt(Station::getId)).orElse(null);
+                if (nearest != null) { stations.setSelectedItem(nearest); }
+            }
             setNextNumber();
             stations.addActionListener(event -> setNextNumber());
         }
         island.addActionListener(event -> second.setFieldsEnabled(island.isSelected()));
         second.setFieldsEnabled(island.isSelected());
+    }
+
+    private static Point2D midpoint(TrackSegment track) {
+        return new Point2D.Double(((double) track.getStart().getX() + track.getEnd().getX()) / 2,
+                ((double) track.getStart().getY() + track.getEnd().getY()) / 2);
+    }
+
+    private static Line2D line(TrackSegment track) {
+        return new Line2D.Double(track.getStart().getX(), track.getStart().getY(), track.getEnd().getX(), track.getEnd().getY());
+    }
+
+    private static double distanceSq(TrackSegment first, TrackSegment second) {
+        Line2D a = line(first), b = line(second);
+        if (a.intersectsLine(b)) { return 0; }
+        return Math.min(Math.min(a.ptSegDistSq(b.getP1()), a.ptSegDistSq(b.getP2())),
+                Math.min(b.ptSegDistSq(a.getP1()), b.ptSegDistSq(a.getP2())));
+    }
+
+    private void sortSecondTracks(Network network) {
+        TrackSegment reference = (TrackSegment) first.tracks.getSelectedItem();
+        TrackSegment selected = (TrackSegment) second.tracks.getSelectedItem();
+        TrackSegment[] choices = network.getAllTrackSegments().stream().filter(track -> track != reference
+                        && (reference == null || !adjacent(reference, track) || isExistingSecondTrack(track)))
+                .sorted(Comparator.comparingInt((TrackSegment track) -> reference == null || parallel(reference, track) ? 0 : 1)
+                        .thenComparingDouble(track -> reference == null ? 0 : distanceSq(reference, track))
+                        .thenComparingInt(TrackSegment::getId)).toArray(TrackSegment[]::new);
+        second.tracks.setModel(new DefaultComboBoxModel<>(choices));
+        // Creation suggests the nearest edge; edits preserve the existing choice.
+        if (existing != null && selected != reference && network.getAllTrackSegments().contains(selected)) {
+            second.tracks.setSelectedItem(selected);
+        }
+        second.updateSideChoices();
+    }
+
+    private boolean isExistingSecondTrack(TrackSegment track) {
+        return existing != null && existing.isIslandPlatform()
+                && existing.getEdges().get(1).getTrackSegment() == track;
+    }
+
+    private static boolean adjacent(TrackSegment a, TrackSegment b) {
+        for (Node first : new Node[]{a.getStart(), a.getEnd()}) {
+            for (Node second : new Node[]{b.getStart(), b.getEnd()}) {
+                if (first == second || (first.getX() == second.getX() && first.getY() == second.getY())) { return true; }
+            }
+        }
+        return false;
+    }
+
+    private static boolean parallel(TrackSegment a, TrackSegment b) {
+        double ax = (double) a.getEnd().getX() - a.getStart().getX();
+        double ay = (double) a.getEnd().getY() - a.getStart().getY();
+        double bx = (double) b.getEnd().getX() - b.getStart().getX();
+        double by = (double) b.getEnd().getY() - b.getStart().getY();
+        double lengths = Math.hypot(ax, ay) * Math.hypot(bx, by);
+        return lengths > 0 && Math.abs(ax * by - ay * bx) <= lengths * 1e-6;
     }
 
     // Dialog result and validation

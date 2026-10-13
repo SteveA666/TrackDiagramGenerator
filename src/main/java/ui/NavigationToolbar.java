@@ -13,7 +13,7 @@ public final class NavigationToolbar extends JToolBar {
 
     public NavigationToolbar(DiagramPanel panel) {
         setFloatable(false);
-        addButton("-", "Zoom out at the centre of the canvas", panel::zoomOut);
+        addButton("-", "Zoom out", panel::zoomOut);
         JLabel zoom = new JLabel();
         zoom.setHorizontalAlignment(SwingConstants.CENTER);
         zoom.setPreferredSize(new Dimension(62, 24));
@@ -23,12 +23,12 @@ public final class NavigationToolbar extends JToolBar {
         panel.addPropertyChangeListener("view", event -> update.run());
         update.run();
         add(zoom);
-        addButton("+", "Zoom in at the centre of the canvas", panel::zoomIn);
+        addButton("+", "Zoom in", panel::zoomIn);
         addSeparator();
-        addButton("Fit", "Fit the diagram in the canvas", panel::fitToDiagram);
-        addButton("100%", "Reset the zoom and pan", panel::resetView);
+        addButton("Fit", "Fit diagram", panel::fitToDiagram);
+        addButton("100%", "Reset view", panel::resetView);
         addSeparator();
-        add(new JLabel("Mouse wheel: zoom | Middle drag or Pan tool: move the view"));
+        add(new JLabel("Wheel: zoom | Middle drag: pan"));
     }
 
     // Navigation buttons

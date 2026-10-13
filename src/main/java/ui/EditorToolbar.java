@@ -74,7 +74,8 @@ public final class EditorToolbar extends JToolBar {
     // Tool buttons
     private void addTool(ButtonGroup group, DiagramPanel panel, String label, DiagramPanel.Tool tool) {
         JToggleButton button = new JToggleButton(label, panel.getTool() == tool);
-        String shortcut = tool == DiagramPanel.Tool.ADD_NODE ? " (N)"
+        String shortcut = tool == DiagramPanel.Tool.SELECT ? " (A)"
+                : tool == DiagramPanel.Tool.ADD_NODE ? " (N)"
                 : tool == DiagramPanel.Tool.ADD_TRACK ? " (T)"
                 : tool == DiagramPanel.Tool.ADD_STATION ? " (S)"
                 : tool == DiagramPanel.Tool.ADD_PLATFORM ? " (P)"

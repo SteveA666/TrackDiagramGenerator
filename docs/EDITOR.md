@@ -6,11 +6,11 @@ The application provides editing and navigation toolbars above the canvas. Choos
 
 Keyboard shortcuts: **N** selects Add Node; **T** selects Add Track; **S** selects Add Station; **P** selects Add Platform; **X** selects Custom Text. Shift plus the same letter also works. Switching tools cancels pending edits and updates the toolbar selection. Shortcuts do not intercept typing in text fields.
 
-- **Select / Move:** click a blue node handle to select it. Drag to preview a new position, then release to commit it. Tracks follow the preview. Clicking empty space clears the selection.
+- **A / Select / Move:** click a blue node handle to select it. Drag to preview a new position, then release to commit it. Tracks follow the preview. Click a track to select it. Delete removes a selected node or track with its dependent tracks/platforms as one undoable edit. The status bar displays the selected object's ID; platforms show their number and owning station ID. Clicking empty space clears the selection.
 - **Add Node:** choose Regular or Stub end and click empty space. Identities are assigned automatically. Clicking an existing handle selects that node instead of creating a duplicate.
 - **Add Track:** choose Mainline, Station, or Siding. Drag from an existing node or empty space to another node or empty space. A dashed line previews the track; missing endpoints are created together with the track on release. Existing node handles and exact snapped endpoint positions are reused. You can also click endpoints: an empty first click places a starting node, and the next click connects it to an existing or newly created endpoint. Escape or switching tools cancels the connection but retains the explicitly placed starting node. The node type choice applies to new endpoints only.
 - **Snap to grid:** enabled by default, with configurable 20-unit spacing. Disable it for exact placement. Grid visibility is independent of snapping. Selecting an off-grid node does not move it; only an actual drag applies snapping.
-- **Escape or right click:** cancel a pending connection or drag. Switching tools, changing snapping, or zooming also cancels pending edits. Panning starts by cancelling pending model edits.
+- **Escape or right click:** cancel a pending connection or drag. Switching tools, changing snapping, or using navigation buttons also cancels pending edits. Mouse-wheel zoom and middle-button panning preserve pending tracks and cancels pending node or label moves. The Pan tool cancels pending model edits. Middle-button panning preserves pending tracks.
 - **Pan:** select the Pan tool and drag with the left mouse button, or drag with the middle button from any tool. Panning changes only the view.
 - **Zoom:** use the mouse wheel to zoom around the pointer, or the + and - buttons to zoom around the canvas centre. The zoom range is 10% to 800%. The scale label updates automatically.
 - **Fit / 100%:** Fit centres the current diagram and chooses a scale within the zoom limits. Very large diagrams may exceed the available view at the minimum scale. 100% resets both zoom and pan. Fit is also safe on an empty diagram.
@@ -34,7 +34,7 @@ Stub ends draw a U-shaped buffer marker across the track, with both arms pointin
 
 ## Scope
 
-The editor supports node and track creation, station and custom text labels, side and island platform editing, view navigation, JSON saving/loading, undo/redo, and persistent settings. Node/track deletion tools remain future work. Use File > Save to preserve edits in `saved_diagrams/`; see the [I/O guide](IO.md) and [settings and history guide](SETTINGS_AND_HISTORY.md).
+The editor supports node and track creation and deletion, station and custom text labels, side and island platform editing, view navigation, JSON saving/loading, undo/redo, and persistent settings. Use File > Save to preserve edits in `saved_diagrams/`; see the [I/O guide](IO.md) and [settings and history guide](SETTINGS_AND_HISTORY.md).
 
 ## Tests
 
@@ -69,4 +69,4 @@ Platform surfaces are drawn behind tracks and labels. Labels and node handles ta
 
 Enable **Continuous Draw** in the paint toolbar to keep drawing from each completed track's endpoint. It applies to both clicks and drags, and you can mix the two. Existing endpoint nodes are reused. Failed connections leave the last valid starting point available so you can try another endpoint.
 
-The toggle is off by default. Enabling it preserves a starting node already selected for a connection. Disabling it ends the pending connection. Escape, right-click, switching tools, changing snapping, or changing the view also ends the current chain; completed tracks and explicitly placed nodes remain. The preference stays enabled until you turn it off, so the next independent track starts another chain.
+The toggle is off by default. Enabling it preserves a starting node already selected for a connection. Disabling it ends the pending connection. Escape, right-click, switching tools, changing snapping, selecting the Pan tool, or using navigation buttons also ends the current chain; completed tracks and explicitly placed nodes remain. Mouse-wheel zoom and middle-button panning preserve the chain, including an active track drag. The preference stays enabled until you turn it off, so the next independent track starts another chain.

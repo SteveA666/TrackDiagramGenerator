@@ -77,7 +77,8 @@ Archives and SHA-256 checksums are written to `target/releases/`. Each build run
 | Create or open a diagram | **File > New** / **Ctrl+N**, **File > Open...** / **Ctrl+O** |
 | Save or save under another name | **File > Save** / **Ctrl+S**, **File > Save As...** / **Ctrl+Shift+S** |
 | Export a PNG or JPG image | **File > Export image...** / **Ctrl+E** |
-| Select or move an object | **Select / Move**, then click or drag a node handle, station marker/name, or text |
+| Select or move an object | **A / Select / Move**, then click a track or click/drag a node handle, station marker/name, or text |
+| Delete a node or track | Select it with **Select / Move**, then press **Delete**; undo with **Ctrl+Z** |
 | Add a station | **S** or **Add Station**, click a position, then enter its name |
 | Add a platform | **P** or **Add Platform**, click a track, then choose a station and edge placement |
 | Edit or delete a platform | **Select / Move**, then double-click its surface or number |
@@ -107,13 +108,13 @@ New endpoints use the selected node type and optional grid snapping. Existing en
 
 **Continuous Draw** is off by default. Enable it to make every successfully completed track's endpoint the starting point for the next track. Continue by clicking or dragging, and mix the two as needed. Invalid connections leave the last valid starting point available for another attempt.
 
-Escape or right-click ends the chain without deleting completed tracks. Disabling Continuous Draw, switching tools, changing snapping, or changing the view also clears the pending connection. Enabling the toggle preserves an already selected starting point. The preference stays enabled after ending a chain, so the next track begins another chain.
+Escape or right-click ends the chain without deleting completed tracks. Disabling Continuous Draw, switching tools, changing snapping, selecting the Pan tool, or using the navigation buttons also clears the pending connection. Mouse-wheel zoom and middle-button panning preserve the pending connection and chain. Enabling the toggle preserves an already selected starting point. The preference stays enabled after ending a chain, so the next track begins another chain.
 
 ### Stations and platforms
 
 Use **S / Add Station** to place a named station. A station groups its platforms under a stable identity. Dragging its marker/name moves only the station label; its platforms remain attached to their tracks. Double-click the station label to rename it.
 
-To add a platform, first create a station and its supporting tracks. Choose **P / Add Platform**, then click a track to preselect it in the placement dialog. Choose the owning station, an unused positive platform number, and one or two track edges:
+To add a platform, first create a station and its supporting tracks. Choose **P / Add Platform**, then click a track to preselect it in the placement dialog. The station nearest the clicked position in diagram coordinates is selected automatically; you can choose another station. Island platforms exclude tracks sharing an endpoint with the first track. Parallel tracks rank first, ordered by distance, followed by other tracks ordered by distance. The highest-ranked track is suggested; editing an existing island preserves its current second track. Changing the first track updates that list. Choose the owning station, an unused positive platform number, and one or two track edges:
 
 - **Side platform:** one edge, drawn as a 12-unit-wide strip extending away from the track.
 - **Island platform:** two edges on distinct tracks, joined into one filled surface. Choose the edges facing the space between the tracks.
@@ -134,7 +135,11 @@ Select and drag text to reposition it, or double-click to edit its content and a
 
 The zoom range is 10% to 800%. Node handles keep a constant screen size, and snapping uses diagram coordinates regardless of the view. Blue handles remain visible when black debug circles are hidden.
 
-Switching tools, changing snapping, zooming, or starting a pan cancels pending model edits. N, T, S, P, and X also update the toolbar selection and do not intercept typing in text fields. Shift plus the same letter works too.
+Switching tools, changing snapping, using navigation buttons, or selecting the Pan tool cancels pending model edits. Mouse-wheel zoom and middle-button panning preserve track drawing, including click starts, active drags, and Continuous Draw chains; it cancels pending node or label moves. A, N, T, S, P, and X also update the toolbar selection and do not intercept typing in text fields. Shift plus the same letter works too.
+
+In Select / Move, click a track to highlight it or a node handle to select the node, then press Delete while the canvas has focus. Deleting a track keeps its endpoints and removes its dependent platforms. Deleting a node also removes its connected tracks and their dependent platforms. Each deletion is one undoable edit.
+
+The status bar shows `ID: X` for the selected object. Platforms use their platform number and also show the owning station ID, since numbering is local to each station.
 
 See [the editor guide](docs/EDITOR.md) for detailed behaviour.
 
@@ -178,6 +183,6 @@ New, Open, Save, Save As, Export, Exit, Undo/Redo, and Settings are implemented.
 ## Current limitations
 
 - Image export supports PNG and JPG.
-- The canvas has no node/track deletion tools or properties dialog for existing nodes and tracks.
+- The canvas has no properties dialog for existing nodes and tracks.
 
 Earlier documentation was fully or partially generated by DeepSeek V4.1 Flash. This README was updated with assistance from Codex.

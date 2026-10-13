@@ -72,6 +72,24 @@ public final class DiagramEditor {
     }
 
     // Track editing
+    public void deleteNode(int id) {
+        history.perform("Delete node", () -> {
+            requireNode(id);
+            network.removeNode(id);
+            return null;
+        });
+    }
+
+    public void deleteTrack(int id) {
+        history.perform("Delete track", () -> {
+            if (network.getTrackSegment(id) == null) {
+                throw new IllegalArgumentException("Track is no longer in this diagram.");
+            }
+            network.removeTrackSegment(id);
+            return null;
+        });
+    }
+
     public TrackSegment createTrack(int startId, int endId, TrackType type) {
         return history.perform("Add track", () -> createTrackImpl(startId, endId, type));
     }
