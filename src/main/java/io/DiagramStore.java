@@ -1,5 +1,7 @@
 package io;
 
+import i18n.Messages;
+
 import app.PortablePaths;
 
 import java.io.IOException;
@@ -20,15 +22,15 @@ public final class DiagramStore {
     public Path getDirectory() { return directory; }
 
     public Path resolve(String filename) {
-        if (filename == null || filename.isBlank()) { throw new IllegalArgumentException("Enter a diagram filename."); }
+        if (filename == null || filename.isBlank()) { throw new IllegalArgumentException(Messages.text("error.DiagramStore.enter.a.diagram.filename")); }
         String name = filename.trim();
         if (name.equals(".") || name.equals("..") || name.matches(".*[\\\\/:*?\"<>|\\p{Cntrl}].*")) {
-            throw new IllegalArgumentException("Enter a filename without folders or special characters.");
+            throw new IllegalArgumentException(Messages.text("error.DiagramStore.enter.a.filename.without.folders.or.special.characters"));
         }
         if (!name.toLowerCase(Locale.ROOT).endsWith(".json")) { name += ".json"; }
-        if (name.equalsIgnoreCase(".json")) { throw new IllegalArgumentException("Enter a name before .json."); }
+        if (name.equalsIgnoreCase(".json")) { throw new IllegalArgumentException(Messages.text("error.DiagramStore.enter.a.name.before.json")); }
         Path target = directory.resolve(name).normalize();
-        if (!directory.equals(target.getParent())) { throw new IllegalArgumentException("Choose a file in saved_diagrams."); }
+        if (!directory.equals(target.getParent())) { throw new IllegalArgumentException(Messages.text("error.DiagramStore.choose.a.file.in.saved.diagrams")); }
         return target;
     }
 

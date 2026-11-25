@@ -49,6 +49,8 @@
         <version>3.5.2</version>
         <configuration>
           <failIfNoTests>true</failIfNoTests>
+          <!-- Locale is cached at JVM startup; keep legacy English UI assertions deterministic. -->
+          <argLine>-Duser.language=en -Duser.country=US</argLine>
           <systemPropertyVariables>
             <java.awt.headless>true</java.awt.headless>
           </systemPropertyVariables>

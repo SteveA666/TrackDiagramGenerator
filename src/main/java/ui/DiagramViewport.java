@@ -1,5 +1,7 @@
 package ui;
 
+import i18n.Messages;
+
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 
@@ -31,7 +33,7 @@ public final class DiagramViewport {
     public void zoomAt(double factor, Point2D anchor) {
         requireFinite(factor);
         requireFinite(anchor.getX()); requireFinite(anchor.getY());
-        if (factor <= 0) { throw new IllegalArgumentException("Zoom factor must be positive."); }
+        if (factor <= 0) { throw new IllegalArgumentException(Messages.text("diagramViewport.zoom.factor.must.be.positive")); }
         Point2D world = toWorld(anchor);
         double nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * factor));
         double nextX = anchor.getX() - world.getX() * nextZoom;
@@ -55,6 +57,6 @@ public final class DiagramViewport {
 
     // Validation
     private void requireFinite(double value) {
-        if (!Double.isFinite(value)) { throw new IllegalArgumentException("View coordinates must be finite."); }
+        if (!Double.isFinite(value)) { throw new IllegalArgumentException(Messages.text("diagramViewport.view.coordinates.must.be.finite")); }
     }
 }

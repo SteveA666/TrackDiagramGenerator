@@ -1,5 +1,7 @@
 package editor;
 
+import i18n.Messages;
+
 import io.DiagramIO;
 import io.DiagramStore;
 import java.io.IOException;
@@ -50,7 +52,7 @@ public final class DiagramDocument {
     }
 
     public void save() throws IOException {
-        if (path == null) { throw new IllegalStateException("Choose a filename using Save As first."); }
+        if (path == null) { throw new IllegalStateException(Messages.text("error.DiagramDocument.choose.a.filename.using.save.as.first")); }
         saveAs(path.getFileName().toString());
     }
 

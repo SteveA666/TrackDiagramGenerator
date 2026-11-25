@@ -1,5 +1,7 @@
 package ui;
 
+import i18n.Messages;
+
 import java.awt.*;
 import java.text.ParseException;
 import javax.swing.*;
@@ -8,50 +10,62 @@ import settings.AppSettings;
 
 /** Editable draft. Reading validates every field before any preference is applied. */
 public final class SettingsPanel extends JPanel {
+    private final LanguagePicker language = new LanguagePicker();
     private final JSpinner windowWidth = spinner(800, 800, 7680), windowHeight = spinner(600, 400, 4320);
-    private final JCheckBox maximize = new JCheckBox("Open maximized");
-    private final JCheckBox snap = new JCheckBox("Snap to grid");
-    private final JCheckBox continuous = new JCheckBox("Continuous drawing by default");
+    private final JCheckBox maximize = new JCheckBox(Messages.text("settingsPanel.open.maximized"));
+    private final JCheckBox snap = new JCheckBox(Messages.text("settingsPanel.snap.to.grid"));
+    private final JCheckBox continuous = new JCheckBox(Messages.text("settingsPanel.continuous.drawing.by.default"));
     private final JSpinner spacing = spinner(20, 1, 200), undo = spinner(100, 1, 1000);
     private final JComboBox<NodeType> node = new JComboBox<>(NodeType.values());
     private final JComboBox<TrackType> track = new JComboBox<>(TrackType.values());
-    private final JCheckBox grid = new JCheckBox("Show grid (independent of snapping)");
-    private final JCheckBox debug = new JCheckBox("Show debug node circles");
-    private final JCheckBox antialias = new JCheckBox("Smooth lines and text");
+    private final JCheckBox grid = new JCheckBox(Messages.text("settingsPanel.show.grid.independent.of.snapping"));
+    private final JCheckBox debug = new JCheckBox(Messages.text("settingsPanel.show.debug.node.circles"));
+    private final JCheckBox antialias = new JCheckBox(Messages.text("settingsPanel.smooth.lines.and.text"));
     private final JTextField background = new JTextField(12), gridColor = new JTextField(12), textColor = new JTextField(12);
     private final JSpinner wheel = spinner(15, 1, 100), textSize = spinner(16, 1, 512);
-    private final JCheckBox invert = new JCheckBox("Invert mouse-wheel zoom");
-    private final JCheckBox fit = new JCheckBox("Fit diagram when opening a file");
+    private final JCheckBox invert = new JCheckBox(Messages.text("settingsPanel.invert.mouse.wheel.zoom"));
+    private final JCheckBox fit = new JCheckBox(Messages.text("settingsPanel.fit.diagram.when.opening.a.file"));
     private final JComboBox<String> font = new JComboBox<>(GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames());
     private final JSpinner start = spinner(20, 0, 99), end = spinner(80, 1, 100);
     private final JSpinner offset = new JSpinner(new SpinnerNumberModel(8.0, 0.0, 1000.0, 1.0));
-    private final JCheckBox backup = new JCheckBox("Keep previous save as filename.json.bak");
-    private final JCheckBox overwrite = new JCheckBox("Confirm replacement in Save As");
+    private final JCheckBox backup = new JCheckBox(Messages.text("settingsPanel.keep.previous.save.as.filename.json.bak"));
+    private final JCheckBox overwrite = new JCheckBox(Messages.text("settingsPanel.confirm.replacement.in.save.as"));
 
     public SettingsPanel(AppSettings settings) {
         super(new BorderLayout(8, 8));
         font.setEditable(true);
+        DefaultListCellRenderer enumRenderer = new DefaultListCellRenderer() {
+            @Override public Component getListCellRendererComponent(JList<?> list, Object value,
+                    int index, boolean selected, boolean focused) {
+                return super.getListCellRendererComponent(list,
+                        value instanceof Enum<?> item ? Messages.enumLabel(item) : value, index, selected, focused);
+            }
+        };
+        node.setRenderer(enumRenderer); track.setRenderer(enumRenderer);
         JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("Window", form("Window width (pixels):", windowWidth, "Window height (pixels):", windowHeight,
-                "", maximize, "", new JLabel("Window dimensions are limited to the available screen area.")));
-        tabs.addTab("Editing", form("", snap, "Grid spacing (units):", spacing, "", continuous,
-                "Default node type:", node, "Default track type:", track, "Undo history (edits):", undo));
-        tabs.addTab("Appearance", form("", grid, "", debug, "", antialias,
-                "Background (#RRGGBB):", background, "Grid (#RRGGBB):", gridColor));
-        tabs.addTab("Navigation", form("Wheel zoom step (%):", wheel, "", invert, "", fit));
-        tabs.addTab("New objects", form("Text font:", font, "Text size (units):", textSize,
-                "Text colour (#RRGGBB):", textColor, "Platform start (%):", start,
-                "Platform end (%):", end, "Platform offset (units):", offset));
-        tabs.addTab("Saving", form("", backup, "", overwrite,
-                "Diagram folder:", new JLabel("saved_diagrams/"),
-                "", new JLabel("Changes apply immediately; existing object styles are preserved.")));
+        tabs.addTab(Messages.text("settings.language"), form(Messages.text("settings.language"), language,
+                "", new JLabel(Messages.text("settings.languageHelp"))));
+        tabs.addTab(Messages.text("settingsPanel.window"), form(Messages.text("settingsPanel.window.width.pixels"), windowWidth, Messages.text("settingsPanel.window.height.pixels"), windowHeight,
+                "", maximize, "", new JLabel(Messages.text("settingsPanel.window.dimensions.are.limited.to.the.available.screen.area"))));
+        tabs.addTab(Messages.text("settingsPanel.editing"), form("", snap, Messages.text("settingsPanel.grid.spacing.units"), spacing, "", continuous,
+                Messages.text("settingsPanel.default.node.type"), node, Messages.text("settingsPanel.default.track.type"), track, Messages.text("settingsPanel.undo.history.edits"), undo));
+        tabs.addTab(Messages.text("settingsPanel.appearance"), form("", grid, "", debug, "", antialias,
+                Messages.text("settingsPanel.background.rrggbb"), background, Messages.text("settingsPanel.grid.rrggbb"), gridColor));
+        tabs.addTab(Messages.text("settingsPanel.navigation"), form(Messages.text("settingsPanel.wheel.zoom.step"), wheel, "", invert, "", fit));
+        tabs.addTab(Messages.text("settingsPanel.new.objects"), form(Messages.text("settingsPanel.text.font"), font, Messages.text("settingsPanel.text.size.units"), textSize,
+                Messages.text("settingsPanel.text.colour.rrggbb"), textColor, Messages.text("settingsPanel.platform.start"), start,
+                Messages.text("settingsPanel.platform.end"), end, Messages.text("settingsPanel.platform.offset.units"), offset));
+        tabs.addTab(Messages.text("settingsPanel.saving"), form("", backup, "", overwrite,
+                Messages.text("settingsPanel.diagram.folder"), new JLabel("saved_diagrams/"),
+                "", new JLabel(Messages.text("settingsPanel.changes.apply.immediately.existing.object.styles.are.preserved"))));
         add(tabs, BorderLayout.CENTER);
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        setPreferredSize(new Dimension(620, 350));
+        setPreferredSize(new Dimension(Math.max(620, getPreferredSize().width), Math.max(350, getPreferredSize().height)));
         load(settings);
     }
 
     public void load(AppSettings settings) {
+        language.selectLanguage(settings.languageTag);
         windowWidth.setValue(settings.windowWidth); windowHeight.setValue(settings.windowHeight);
         maximize.setSelected(settings.startMaximized);
         snap.setSelected(settings.snapToGrid); spacing.setValue(settings.gridSpacing);
@@ -69,9 +83,11 @@ public final class SettingsPanel extends JPanel {
     public AppSettings readSettings() {
         for (JSpinner field : new JSpinner[]{windowWidth, windowHeight, spacing, undo, wheel, textSize, start, end, offset}) {
             try { field.commitEdit(); }
-            catch (ParseException failure) { throw new IllegalArgumentException("Enter valid numbers within the displayed ranges."); }
+            catch (ParseException failure) { throw new IllegalArgumentException(Messages.text("settingsPanel.enter.valid.numbers.within.the.displayed.ranges")); }
         }
         AppSettings settings = new AppSettings();
+        Object selectedLanguage = language.getSelectedItem();
+        settings.languageTag = selectedLanguage == null ? "" : selectedLanguage.toString().trim();
         settings.windowWidth = (int) windowWidth.getValue(); settings.windowHeight = (int) windowHeight.getValue();
         settings.startMaximized = maximize.isSelected();
         settings.snapToGrid = snap.isSelected(); settings.gridSpacing = (int) spacing.getValue();

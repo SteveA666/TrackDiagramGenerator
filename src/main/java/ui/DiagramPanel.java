@@ -1,5 +1,7 @@
 package ui;
 
+import i18n.Messages;
+
 import editor.DiagramEditor;
 import editor.PlatformGeometry;
 import java.awt.*;
@@ -36,6 +38,8 @@ public class DiagramPanel extends JPanel {
     private NodeType nodeType = NodeType.REGULAR;
     private TrackType trackType = TrackType.MAINLINE;
     private Node selectedNode;
+    private TrackSegment selectedTrack;
+    private boolean spaceHeld;
     private Object selectedLabel;
     private Platform selectedPlatform;
     private Object draggedLabel;
@@ -53,17 +57,17 @@ public class DiagramPanel extends JPanel {
     private boolean dragMoved;
     private Point panPoint;
     private int panButton;
-    private String statusMessage = "Select an object or drag it to move it. Double-click labels to edit. Mouse wheel zooms.";
+    private String statusMessage = Messages.text("diagramPanel.select.an.object.or.drag.it.to.move.it");
     private boolean statusError;
 
     public DiagramPanel(Network network){ this(new DiagramEditor(network)); }
 
     public DiagramPanel(DiagramEditor editor) {
-        this.editor = Objects.requireNonNull(editor, "An editor is required.");
+        this.editor = Objects.requireNonNull(editor, Messages.text("diagramPanel.an.editor.is.required"));
         network = editor.getNetwork();
         setBackground(Color.WHITE);
         setFocusable(true);
-        setToolTipText("Wheel: zoom. Middle drag or Pan tool: move the view. Escape: cancel.");
+        setToolTipText(Messages.text("diagramPanel.wheel.zoom.space.drag.middle.drag.or.pan.tool"));
         MouseAdapter mouse = new MouseAdapter() {
             @Override public void mousePressed(MouseEvent event){ press(event); }
             @Override public void mouseDragged(MouseEvent event){ drag(event); }
@@ -91,6 +95,35 @@ public class DiagramPanel extends JPanel {
         getActionMap().put("cancel", new AbstractAction() {
             @Override public void actionPerformed(ActionEvent event){ cancelInteraction(); }
         });
+        InputMap canvasKeys = getInputMap(JComponent.WHEN_FOCUSED);
+        canvasKeys.put(KeyStroke.getKeyStroke("DELETE"), "delete-selection");
+        canvasKeys.put(KeyStroke.getKeyStroke("BACK_SPACE"), "delete-selection");
+        getActionMap().put("delete-selection", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent event) { deleteSelection(); }
+        });
+        canvasKeys.put(KeyStroke.getKeyStroke("pressed SPACE"), "pan-pressed");
+        canvasKeys.put(KeyStroke.getKeyStroke("released SPACE"), "pan-released");
+        getActionMap().put("pan-pressed", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent event) {
+                spaceHeld = true;
+                updateCursor();
+            }
+        });
+        getActionMap().put("pan-released", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent event) {
+                spaceHeld = false;
+                updateCursor();
+            }
+        });
+        addFocusListener(new FocusAdapter() {
+            @Override public void focusLost(FocusEvent event) {
+                spaceHeld = false;
+                clearPendingEdit();
+                updateCursor();
+                repaint();
+            }
+        });
+        bindToolShortcut("A", Tool.SELECT);
         bindToolShortcut("N", Tool.ADD_NODE);
         bindToolShortcut("T", Tool.ADD_TRACK);
         bindToolShortcut("S", Tool.ADD_STATION);
@@ -125,14 +158,15 @@ public class DiagramPanel extends JPanel {
 
     private void changeHistory(boolean redo) {
         clearPendingEdit();
-        selectedNode = null; selectedLabel = null; selectedPlatform = null; hoveredNode = null;
+        selectedNode = null; selectedTrack = null; selectedLabel = null; selectedPlatform = null; hoveredNode = null;
         String name = redo ? editor.getHistory().redoName() : editor.getHistory().undoName();
         if (redo) { editor.getHistory().redo(); } else { editor.getHistory().undo(); }
-        showStatus(name.isEmpty() ? "No edit to " + (redo ? "redo." : "undo.")
-                : (redo ? "Redid: " : "Undid: ") + name + ".", false);
+        showStatus(name.isEmpty() ? Messages.text(redo ? "history.emptyRedo" : "history.emptyUndo")
+                : Messages.text(redo ? "history.redone" : "history.undone", name), false);
         repaint();
     }
     public Node getSelectedNode(){ return selectedNode; }
+    public TrackSegment getSelectedTrack(){ return selectedTrack; }
     public Platform getSelectedPlatform(){ return selectedPlatform; }
     public Station getSelectedStation(){ return selectedLabel instanceof Station ? (Station) selectedLabel : null; }
     public CustomText getSelectedCustomText(){ return selectedLabel instanceof CustomText ? (CustomText) selectedLabel : null; }
@@ -141,12 +175,16 @@ public class DiagramPanel extends JPanel {
         Tool previous = this.tool;
         this.tool = Objects.requireNonNull(tool, "A tool is required.");
         clearPendingEdit();
-        int cursor = tool == Tool.PAN ? Cursor.HAND_CURSOR
-                : tool == Tool.SELECT ? Cursor.DEFAULT_CURSOR : Cursor.CROSSHAIR_CURSOR;
-        setCursor(Cursor.getPredefinedCursor(cursor));
+        updateCursor();
         firePropertyChange("tool", previous, tool);
         showStatus(toolHint(), false);
         repaint();
+    }
+
+    private void updateCursor() {
+        int cursor = spaceHeld || tool == Tool.PAN ? Cursor.HAND_CURSOR
+                : tool == Tool.SELECT ? Cursor.DEFAULT_CURSOR : Cursor.CROSSHAIR_CURSOR;
+        setCursor(Cursor.getPredefinedCursor(cursor));
     }
 
     public void setNodeType(NodeType type){ nodeType = Objects.requireNonNull(type, "A node type is required."); }
@@ -169,14 +207,39 @@ public class DiagramPanel extends JPanel {
 
     private String toolHint() {
         switch (tool) {
-            case ADD_NODE: return "Click empty space to add a node. Choose its type above.";
-            case ADD_TRACK: return "Drag to draw a track, or click endpoints; empty clicks add nodes. Escape cancels.";
-            case ADD_STATION: return "Click to place a named station. Select and double-click to rename it.";
-            case ADD_PLATFORM: return "Click a track to add a side or island platform to a station.";
-            case ADD_TEXT: return "Click to place custom text. Select and double-click to edit it.";
-            case PAN: return "Drag to pan. Mouse wheel zooms at the pointer. Fit shows the whole diagram.";
-            default: return "Select an object or drag it to move it. Double-click labels to edit. Wheel: zoom. Middle drag: pan.";
+            case ADD_NODE: return Messages.text("diagramPanel.click.empty.space.to.add.a.node.choose.its");
+            case ADD_TRACK: return Messages.text("diagramPanel.drag.to.draw.a.track.or.click.endpoints.empty");
+            case ADD_STATION: return Messages.text("diagramPanel.click.to.place.a.named.station.select.and.double");
+            case ADD_PLATFORM: return Messages.text("diagramPanel.click.a.track.to.add.a.side.or.island");
+            case ADD_TEXT: return Messages.text("diagramPanel.click.to.place.custom.text.select.and.double.click");
+            case PAN: return Messages.text("diagramPanel.drag.to.pan.mouse.wheel.zooms.at.the.pointer");
+            default: return Messages.text("diagramPanel.select.an.object.or.drag.it.to.move.it.alternate");
         }
+    }
+
+    private void deleteSelection() {
+        clearPendingEdit();
+        try {
+            String name;
+            if (selectedNode != null) {
+                editor.deleteNode(selectedNode.getId()); name = Messages.text("selection.node");
+            } else if (selectedTrack != null) {
+                editor.deleteTrack(selectedTrack.getId()); name = Messages.text("selection.track");
+            } else if (selectedPlatform != null) {
+                editor.deletePlatform(selectedPlatform.getStation().getId(), selectedPlatform.getNumber()); name = Messages.text("selection.platform");
+            } else if (selectedLabel instanceof Station) {
+                editor.deleteStation(((Station) selectedLabel).getId()); name = Messages.text("selection.station");
+            } else if (selectedLabel instanceof CustomText) {
+                editor.deleteCustomText(((CustomText) selectedLabel).getId()); name = Messages.text("selection.text");
+            } else {
+                showStatus(Messages.text("diagramPanel.select.an.object.to.delete"), false);
+                return;
+            }
+            selectedNode = null; selectedTrack = null; selectedPlatform = null; selectedLabel = null;
+            hoveredNode = null;
+            showStatus(Messages.text("selection.deleted", name), false);
+        } catch (IllegalArgumentException failure) { showStatus(failure.getMessage(), true); }
+        finally { repaint(); }
     }
 
     // Status feedback
@@ -239,7 +302,7 @@ public class DiagramPanel extends JPanel {
         DiagramPanel canvas = new DiagramPanel(network);
         canvas.exportRendering = true;
         Rectangle2D bounds = canvas.diagramBounds();
-        if (bounds == null) { throw new IllegalArgumentException("The diagram is empty."); }
+        if (bounds == null) { throw new IllegalArgumentException(Messages.text("diagramPanel.the.diagram.is.empty")); }
         Dimension size = exportSize(bounds, scale, padding);
         BufferedImage image = new BufferedImage(size.width, size.height,
                 background == null ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
@@ -258,18 +321,18 @@ public class DiagramPanel extends JPanel {
 
     public static Dimension imageSize(Network network, double scale, int padding) {
         Rectangle2D bounds = new DiagramPanel(network).diagramBounds();
-        if (bounds == null) { throw new IllegalArgumentException("The diagram is empty."); }
+        if (bounds == null) { throw new IllegalArgumentException(Messages.text("diagramPanel.the.diagram.is.empty")); }
         return exportSize(bounds, scale, padding);
     }
 
     private static Dimension exportSize(Rectangle2D bounds, double scale, int padding) {
         if (!Double.isFinite(scale) || scale <= 0 || scale > 8 || padding < 0 || padding > 1000) {
-            throw new IllegalArgumentException("Use a scale above 0 and up to 800%, and padding from 0 to 1000 pixels.");
+            throw new IllegalArgumentException(Messages.text("diagramPanel.use.a.scale.above.0.and.up.to.800"));
         }
         double width = Math.ceil((bounds.getWidth() + 4) * scale) + 2.0 * padding;
         double height = Math.ceil((bounds.getHeight() + 4) * scale) + 2.0 * padding;
         if (width > 16384 || height > 16384 || width * height > 40_000_000) {
-            throw new IllegalArgumentException("Image is too large (maximum 16,384 pixels per side and 40 million pixels). Reduce scale or padding.");
+            throw new IllegalArgumentException(Messages.text("diagramPanel.image.is.too.large.maximum.16.384.pixels.per"));
         }
         return new Dimension(Math.max(1, (int) width), Math.max(1, (int) height));
     }
@@ -302,15 +365,15 @@ public class DiagramPanel extends JPanel {
         continuousDraw = enabled;
         if (!enabled) { clearPendingEdit(); }
         firePropertyChange("continuousDraw", previous, enabled);
-        showStatus(enabled ? "Continuous Draw enabled. Each track end starts the next track. Escape ends the chain."
-                : "Continuous Draw disabled. " + toolHint(), false);
+        showStatus(enabled ? Messages.text("diagramPanel.continuous.draw.enabled.each.track.end.starts.the.next")
+                : Messages.text("tool.continuousDisabled", toolHint()), false);
         repaint();
     }
 
     // Pending edits and cancellation
     public void cancelInteraction() {
         clearPendingEdit();
-        showStatus("Edit cancelled. " + toolHint(), false);
+        showStatus(Messages.text("tool.cancelled", toolHint()), false);
         repaint();
     }
 
@@ -329,13 +392,14 @@ public class DiagramPanel extends JPanel {
 
     // Mouse interactions
     private void press(MouseEvent event) {
+        requestFocusInWindow();
         if (SwingUtilities.isRightMouseButton(event)) { cancelInteraction(); return; }
         if (SwingUtilities.isMiddleMouseButton(event)
-                || (tool == Tool.PAN && SwingUtilities.isLeftMouseButton(event))) {
+                || ((spaceHeld || tool == Tool.PAN) && SwingUtilities.isLeftMouseButton(event))) {
             clearPendingEdit();
             panPoint = event.getPoint();
             panButton = event.getButton();
-            showStatus("Panning the view. Release to finish; the diagram stays unchanged.", false);
+            showStatus(Messages.text("diagramPanel.panning.the.view.release.to.finish.the.diagram.stays"), false);
             return;
         }
         if (!SwingUtilities.isLeftMouseButton(event)) { return; }
@@ -344,6 +408,7 @@ public class DiagramPanel extends JPanel {
         Node hit = nodeAt(pointer);
         selectedLabel = null;
         selectedPlatform = null;
+        selectedTrack = null;
         if (tool == Tool.ADD_STATION || tool == Tool.ADD_TEXT) { selectedNode = null; }
         try {
             switch (tool) {
@@ -352,10 +417,10 @@ public class DiagramPanel extends JPanel {
                     Node existing = hit != null ? hit : nodeAt(worldToScreen(position));
                     if (existing != null) {
                         selectedNode = existing;
-                        showStatus("A node is already here. Selected node " + existing.getId() + ".", false);
+                        showStatus(Messages.text("node.existing", existing.getId()), false);
                     } else {
                         selectedNode = editor.createNode(position.x, position.y, nodeType);
-                        showStatus("Added node " + selectedNode.getId() + ".", false);
+                        showStatus(Messages.text("node.added", selectedNode.getId()), false);
                     }
                     break;
                 case ADD_TRACK:
@@ -368,12 +433,12 @@ public class DiagramPanel extends JPanel {
                     trackDragged = false;
                     pressPoint = event.getPoint();
                     if (hit != null) { selectedNode = hit; }
-                    showStatus("Drag or click the other endpoint; empty space creates a node. Escape cancels.", false);
+                    showStatus(Messages.text("diagramPanel.drag.or.click.the.other.endpoint.empty.space.creates"), false);
                     break;
                 case ADD_PLATFORM: {
                     selectedNode = null;
                     if (network.stationCount() == 0 || network.segmentCount() == 0) {
-                        showStatus("Add a station and at least one track before creating a platform.", true);
+                        showStatus(Messages.text("diagramPanel.add.a.station.and.at.least.one.track.before"), true);
                         break;
                     }
                     applyPlatformDialog(null, trackAt(pointer));
@@ -384,8 +449,8 @@ public class DiagramPanel extends JPanel {
                     String name = requestStationName(null);
                     if (name != null) {
                         selectedLabel = editor.createStation(name, at.x, at.y);
-                        showStatus("Added station. Select and double-click to rename it.", false);
-                    } else { showStatus("Station placement cancelled.", false); }
+                        showStatus(Messages.text("diagramPanel.added.station.select.and.double.click.to.rename.it"), false);
+                    } else { showStatus(Messages.text("diagramPanel.station.placement.cancelled"), false); }
                     break;
                 }
                 case ADD_TEXT: {
@@ -394,8 +459,8 @@ public class DiagramPanel extends JPanel {
                     if (draft != null) {
                         selectedLabel = editor.createCustomText(draft.getText(), at.x, at.y,
                                 draft.getSize(), draft.getFont(), draft.getColor());
-                        showStatus("Added text. Select and double-click to edit it.", false);
-                    } else { showStatus("Text placement cancelled.", false); }
+                        showStatus(Messages.text("diagramPanel.added.text.select.and.double.click.to.edit.it"), false);
+                    } else { showStatus(Messages.text("diagramPanel.text.placement.cancelled"), false); }
                     break;
                 }
                 default:
@@ -409,7 +474,7 @@ public class DiagramPanel extends JPanel {
                         dragOffset = new Point2D.Double(world.getX() - at.x, world.getY() - at.y);
                         preview = at;
                         dragMoved = false;
-                        showStatus("Drag to move the label; double-click to edit it.", false);
+                        showStatus(Messages.text("diagramPanel.drag.to.move.the.label.double.click.to.edit"), false);
                         break;
                     }
                     // Node handles remain reachable when a platform touches a track.
@@ -417,8 +482,7 @@ public class DiagramPanel extends JPanel {
                     if (selectedPlatform != null) {
                         selectedNode = null;
                         if (event.getClickCount() >= 2) { applyPlatformDialog(selectedPlatform, null); }
-                        else { showStatus("Platform " + selectedPlatform.getNumber()
-                                + ": double-click to edit placement, number, or delete.", false); }
+                        else { showStatus(Messages.text("platform.selected", selectedPlatform.getNumber()), false); }
                         break;
                     }
                     selectedNode = hit;
@@ -428,9 +492,11 @@ public class DiagramPanel extends JPanel {
                         dragOffset = new Point2D.Double(world.getX() - hit.getX(), world.getY() - hit.getY());
                         preview = positionOf(hit);
                         dragMoved = false;
-                        showStatus("Selected node " + hit.getId() + ". Drag to move it.", false);
+                        showStatus(Messages.text("node.selected", hit.getId()), false);
                     } else {
-                        showStatus(toolHint(), false);
+                        selectedTrack = trackAt(pointer);
+                        showStatus(selectedTrack == null ? toolHint()
+                                : Messages.text("track.selected", selectedTrack.getId()), false);
                     }
                     break;
             }
@@ -481,7 +547,7 @@ public class DiagramPanel extends JPanel {
                     if (draggedLabel instanceof Station) {
                         editor.moveStation(((Station) draggedLabel).getId(), at.x, at.y);
                     } else { editor.moveCustomText(((CustomText) draggedLabel).getId(), at.x, at.y); }
-                    showStatus("Moved label.", false);
+                    showStatus(Messages.text("diagramPanel.moved.label"), false);
                 }
             } catch (IllegalArgumentException failure) { showStatus(failure.getMessage(), true); }
             finally { clearPendingEdit(); repaint(); }
@@ -492,7 +558,7 @@ public class DiagramPanel extends JPanel {
             if (dragMoved) {
                 Point position = movePosition(pointer);
                 editor.moveNode(draggedNode.getId(), position.x, position.y);
-                showStatus("Moved node " + draggedNode.getId() + " to (" + position.x + ", " + position.y + ").", false);
+                showStatus(Messages.text("node.moved", draggedNode.getId(), position.x, position.y), false);
             }
         } catch (IllegalArgumentException failure) { showStatus(failure.getMessage(), true); }
         finally {
@@ -523,10 +589,7 @@ public class DiagramPanel extends JPanel {
                     trackStart = segment.getEnd();
                     connectionStart = positionOf(trackStart);
                 }
-                showStatus("Added track " + segment.getId()
-                        + (parallel ? ". Parallel tracks overlap until their layout is adjusted." : ".")
-                        + (continuousDraw ? " Click or drag to continue from this endpoint. Escape ends the chain."
-                                : " Draw another track or choose a different tool."), false);
+                showStatus(Messages.text("track.added", segment.getId(), parallel ? Messages.text("track.parallel") : "", continuousDraw ? Messages.text("track.continue") : Messages.text("track.another")), false);
             } else if (trackStart == null) {
                 trackStart = nodeAt(worldToScreen(connectionStart));
                 if (trackStart == null) {
@@ -534,7 +597,7 @@ public class DiagramPanel extends JPanel {
                 }
                 connectionStart = positionOf(trackStart);
                 selectedNode = trackStart;
-                showStatus("Added starting node. Click or drag to the other endpoint. Escape cancels the connection.", false);
+                showStatus(Messages.text("diagramPanel.added.starting.node.click.or.drag.to.the.other"), false);
             }
         } catch (IllegalArgumentException failure) {
             if (trackStart == null) { clearPendingEdit(); }
@@ -550,12 +613,12 @@ public class DiagramPanel extends JPanel {
 
     private void applyPlatformDialog(Platform existing, TrackSegment track) {
         PlatformDialog.Result result = requestPlatform(existing, track);
-        if (result == null) { showStatus("Platform edit cancelled.", false); return; }
+        if (result == null) { showStatus(Messages.text("diagramPanel.platform.edit.cancelled"), false); return; }
         if (result.delete) {
-            if (existing == null) { throw new IllegalArgumentException("Select a platform to delete."); }
+            if (existing == null) { throw new IllegalArgumentException(Messages.text("diagramPanel.select.a.platform.to.delete")); }
             editor.deletePlatform(existing.getStation().getId(), existing.getNumber());
             selectedPlatform = null;
-            showStatus("Deleted platform; its tracks remain in the diagram.", false);
+            showStatus(Messages.text("diagramPanel.deleted.platform.its.tracks.remain.in.the.diagram"), false);
             return;
         }
         Platform replacement = result.platform;
@@ -566,7 +629,7 @@ public class DiagramPanel extends JPanel {
             editor.editPlatform(existing.getStation().getId(), existing.getNumber(), replacement.getNumber(), edges);
             selectedPlatform = existing;
         }
-        showStatus("Platform " + selectedPlatform.getNumber() + " updated. Double-click to edit it.", false);
+        showStatus(Messages.text("platform.updated", selectedPlatform.getNumber()), false);
     }
 
     private Path2D platformShape(Platform platform) {
@@ -630,7 +693,7 @@ public class DiagramPanel extends JPanel {
 
     // Label dialogs and validated edits
     protected String requestStationName(Station station) {
-        return (String) JOptionPane.showInputDialog(this, "Station name:", "Station",
+        return (String) JOptionPane.showInputDialog(this, Messages.text("diagramPanel.station.name"), Messages.text("diagramPanel.station"),
                 JOptionPane.PLAIN_MESSAGE, null, null, station == null ? "" : station.getName());
     }
 
@@ -643,18 +706,18 @@ public class DiagramPanel extends JPanel {
         JTextField size = new JTextField(existing == null ? "" + settings.textSize : "" + existing.getSize());
         JTextField color = new JTextField(existing == null ? settings.textColor : existing.getColor());
         JPanel form = new JPanel(new GridLayout(0, 1, 4, 4));
-        form.add(new JLabel("Text (multiple lines supported):"));
+        form.add(new JLabel(Messages.text("diagramPanel.text.multiple.lines.supported")));
         form.add(new JScrollPane(text));
-        form.add(new JLabel("Font:")); form.add(font);
-        form.add(new JLabel("Size in diagram units:")); form.add(size);
-        form.add(new JLabel("Colour (#RRGGBB):")); form.add(color);
-        while (JOptionPane.showConfirmDialog(this, form, "Custom text",
+        form.add(new JLabel(Messages.text("diagramPanel.font"))); form.add(font);
+        form.add(new JLabel(Messages.text("diagramPanel.size.in.diagram.units"))); form.add(size);
+        form.add(new JLabel(Messages.text("diagramPanel.colour.rrggbb"))); form.add(color);
+        while (JOptionPane.showConfirmDialog(this, form, Messages.text("diagramPanel.custom.text"),
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
             try {
-                return new CustomText(text.getText(), 0, 0, Integer.parseInt(size.getText().trim()),
+                return new CustomText(text.getText(), 0, 0, Messages.integer(size.getText().trim()),
                         String.valueOf(font.getSelectedItem()), color.getText().trim(), 0);
             } catch (IllegalArgumentException failure) {
-                JOptionPane.showMessageDialog(this, failure.getMessage(), "Invalid text", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, failure.getMessage(), Messages.text("diagramPanel.invalid.text"), JOptionPane.ERROR_MESSAGE);
             }
         }
         return null;
@@ -672,7 +735,7 @@ public class DiagramPanel extends JPanel {
                 editor.editCustomText(text.getId(), draft.getText(), draft.getSize(), draft.getFont(), draft.getColor());
             }
         }
-        showStatus("Label editing finished.", false);
+        showStatus(Messages.text("diagramPanel.label.editing.finished"), false);
     }
 
     // Label geometry and drawing
@@ -757,7 +820,7 @@ public class DiagramPanel extends JPanel {
         }
         if (!Double.isFinite(x) || !Double.isFinite(y) || x < Integer.MIN_VALUE
                 || x > Integer.MAX_VALUE || y < Integer.MIN_VALUE || y > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("This position is outside the supported diagram coordinates.");
+            throw new IllegalArgumentException(Messages.text("diagramPanel.this.position.is.outside.the.supported.diagram.coordinates"));
         }
         return new Point((int) Math.round(x), (int) Math.round(y));
     }
@@ -801,6 +864,11 @@ public class DiagramPanel extends JPanel {
             g.setColor(Color.BLACK);
             for (TrackSegment segment : network.getAllTrackSegments()) {
                 g.draw(new Line2D.Double(displayPosition(segment.getStart()), displayPosition(segment.getEnd())));
+            }
+            if (!exportRendering && selectedTrack != null) {
+                g.setColor(new Color(30, 115, 210));
+                g.setStroke(new BasicStroke((float) (3 / getZoom())));
+                g.draw(new Line2D.Double(displayPosition(selectedTrack.getStart()), displayPosition(selectedTrack.getEnd())));
             }
             if (!exportRendering && tool == Tool.ADD_PLATFORM && pointer != null) {
                 TrackSegment hovered = trackAt(pointer);

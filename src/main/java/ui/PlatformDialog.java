@@ -1,5 +1,7 @@
 package ui;
 
+import i18n.Messages;
+
 import editor.DiagramEditor;
 import java.awt.*;
 import javax.swing.*;
@@ -17,7 +19,7 @@ public final class PlatformDialog extends JPanel {
     private final Platform existing;
     private final JComboBox<Station> stations;
     private final JTextField number = new JTextField(8);
-    private final JCheckBox island = new JCheckBox("Island platform (two track edges)");
+    private final JCheckBox island = new JCheckBox(Messages.text("platformDialog.island.platform.two.track.edges"));
     private final EdgeFields first;
     private final EdgeFields second;
 
@@ -57,21 +59,21 @@ public final class PlatformDialog extends JPanel {
             }
         });
         JPanel identity = new JPanel(new GridLayout(0, 2, 6, 6));
-        identity.add(new JLabel("Station:")); identity.add(stations);
-        identity.add(new JLabel("Platform number:")); identity.add(number);
+        identity.add(new JLabel(Messages.text("platformDialog.station"))); identity.add(stations);
+        identity.add(new JLabel(Messages.text("platformDialog.platform.number"))); identity.add(number);
         identity.add(island);
         add(identity, BorderLayout.NORTH);
-        first = new EdgeFields(network, "First edge");
-        second = new EdgeFields(network, "Second edge (islands only)");
+        first = new EdgeFields(network, Messages.text("platformDialog.first.edge"));
+        second = new EdgeFields(network, Messages.text("platformDialog.second.edge.islands.only"));
         for (EdgeFields fields : new EdgeFields[]{first, second}) {
-            fields.start.setText("" + settings.platformStartPercent);
-            fields.end.setText("" + settings.platformEndPercent);
-            fields.offset.setText("" + settings.platformOffset);
+            fields.start.setText(Messages.decimal(settings.platformStartPercent));
+            fields.end.setText(Messages.decimal(settings.platformEndPercent));
+            fields.offset.setText(Messages.decimal(settings.platformOffset));
         }
         JPanel edges = new JPanel(new GridLayout(1, 2, 10, 0));
         edges.add(first); edges.add(second);
         add(edges, BorderLayout.CENTER);
-        add(new JLabel("Sides use screen directions. Extents follow track start to end as percentages."),
+        add(new JLabel(Messages.text("platformDialog.sides.use.screen.directions.extents.follow.track.start.to")),
                 BorderLayout.SOUTH);
         if (track != null) { first.tracks.setSelectedItem(track); }
         if (network.segmentCount() > 1) {
@@ -97,28 +99,28 @@ public final class PlatformDialog extends JPanel {
 
     // Dialog result and validation
     public Result showDialog(Component parent) {
-        String[] actions = existing == null ? new String[]{"Create", "Cancel"}
-                : new String[]{"Apply", "Cancel", "Delete platform"};
+        String[] actions = existing == null ? new String[]{Messages.text("platformDialog.create"), Messages.text("platformDialog.cancel")}
+                : new String[]{Messages.text("platformDialog.apply"), Messages.text("platformDialog.cancel"), Messages.text("platformDialog.delete.platform")};
         while (true) {
             int choice = JOptionPane.showOptionDialog(parent, this,
-                    existing == null ? "Add platform" : "Edit platform", JOptionPane.DEFAULT_OPTION,
+                    existing == null ? Messages.text("platformDialog.add.platform") : Messages.text("platformDialog.edit.platform"), JOptionPane.DEFAULT_OPTION,
                     JOptionPane.PLAIN_MESSAGE, null, actions, actions[0]);
             if (choice == 2 && existing != null) { return new Result(existing.getStation(), existing, true); }
             if (choice != 0) { return null; }
             try {
                 return readResult();
             } catch (IllegalArgumentException failure) {
-                JOptionPane.showMessageDialog(parent, failure.getMessage(), "Invalid platform", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(parent, failure.getMessage(), Messages.text("platformDialog.invalid.platform"), JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
     public Result readResult() {
         Station station = (Station) stations.getSelectedItem();
-        if (station == null) { throw new IllegalArgumentException("Add a station first."); }
+        if (station == null) { throw new IllegalArgumentException(Messages.text("platformDialog.add.a.station.first")); }
         Platform replacement = island.isSelected()
-                ? new Platform(Integer.parseInt(number.getText().trim()), first.read(), second.read())
-                : new Platform(Integer.parseInt(number.getText().trim()), first.read());
+                ? new Platform(Messages.integer(number.getText().trim()), first.read(), second.read())
+                : new Platform(Messages.integer(number.getText().trim()), first.read());
         editor.validatePlatform(station.getId(), existing, replacement);
         return new Result(station, replacement, false);
     }
@@ -151,19 +153,17 @@ public final class PlatformDialog extends JPanel {
                 @Override public Component getListCellRendererComponent(JList<?> list, Object value,
                         int index, boolean selected, boolean focused) {
                     TrackSegment track = (TrackSegment) value;
-                    String label = track == null ? "" : "Track " + track.getId() + " ("
-                            + track.getStart().getX() + "," + track.getStart().getY() + " to "
-                            + track.getEnd().getX() + "," + track.getEnd().getY() + ")";
+                    String label = track == null ? "" : Messages.text("platform.trackLabel", track.getId(), track.getStart().getX(), track.getStart().getY(), track.getEnd().getX(), track.getEnd().getY());
                     return super.getListCellRendererComponent(list, label, index, selected, focused);
                 }
             });
             tracks.addActionListener(event -> updateSideChoices());
             updateSideChoices();
-            add(new JLabel("Track:")); add(tracks);
-            add(new JLabel("Side:")); add(side);
-            add(new JLabel("Start (%):")); add(start);
-            add(new JLabel("End (%):")); add(end);
-            add(new JLabel("Offset (units):")); add(offset);
+            add(new JLabel(Messages.text("platform.track"))); add(tracks);
+            add(new JLabel(Messages.text("platformDialog.side"))); add(side);
+            add(new JLabel(Messages.text("platformDialog.start"))); add(start);
+            add(new JLabel(Messages.text("platformDialog.end"))); add(end);
+            add(new JLabel(Messages.text("platformDialog.offset.units"))); add(offset);
         }
 
         // Screen choices translate to the model's directed track sides.
@@ -172,8 +172,8 @@ public final class PlatformDialog extends JPanel {
             TrackSegment track = (TrackSegment) tracks.getSelectedItem();
             boolean vertical = track != null && isMostlyVertical(track);
             side.removeAllItems();
-            side.addItem(vertical ? "Left of screen" : "Above track");
-            side.addItem(vertical ? "Right of screen" : "Below track");
+            side.addItem(vertical ? Messages.text("platformDialog.left.of.screen") : Messages.text("platformDialog.above.track"));
+            side.addItem(vertical ? Messages.text("platformDialog.right.of.screen") : Messages.text("platformDialog.below.track"));
             side.setSelectedIndex(selected);
         }
 
@@ -197,19 +197,19 @@ public final class PlatformDialog extends JPanel {
         void load(PlatformEdge edge) {
             tracks.setSelectedItem(edge.getTrackSegment());
             side.setSelectedIndex(edge.getSide() == firstScreenSide(edge.getTrackSegment()) ? 0 : 1);
-            start.setText("" + edge.getStartFraction() * 100);
-            end.setText("" + edge.getEndFraction() * 100);
-            offset.setText("" + edge.getOffset());
+            start.setText(Messages.decimal(edge.getStartFraction() * 100));
+            end.setText(Messages.decimal(edge.getEndFraction() * 100));
+            offset.setText(Messages.decimal(edge.getOffset()));
         }
 
         PlatformEdge read() {
             TrackSegment track = (TrackSegment) tracks.getSelectedItem();
-            if (track == null) { throw new IllegalArgumentException("Choose a track."); }
+            if (track == null) { throw new IllegalArgumentException(Messages.text("platformDialog.choose.a.track")); }
             TrackSide chosen = firstScreenSide(track);
             if (side.getSelectedIndex() == 1) { chosen = chosen == TrackSide.LEFT ? TrackSide.RIGHT : TrackSide.LEFT; }
             return new PlatformEdge(track, chosen,
-                    Double.parseDouble(start.getText().trim()) / 100,
-                    Double.parseDouble(end.getText().trim()) / 100, Double.parseDouble(offset.getText().trim()));
+                    Messages.decimal(start.getText().trim()) / 100,
+                    Messages.decimal(end.getText().trim()) / 100, Messages.decimal(offset.getText().trim()));
         }
     }
 }

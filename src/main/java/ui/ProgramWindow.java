@@ -1,5 +1,7 @@
 package ui;
 
+import i18n.Messages;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
@@ -36,7 +38,7 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
         catch (IOException failure) {
             try { settings = settingsStore.loadDefaults(); }
             catch (IOException defaultsFailure) { failure.addSuppressed(defaultsFailure); }
-            SwingUtilities.invokeLater(() -> DiagramFileDialogs.showError(this, "Load settings (using defaults)", failure));
+            SwingUtilities.invokeLater(() -> DiagramFileDialogs.showError(this, Messages.text("programWindow.load.settings.using.defaults"), failure));
         }
         document.setBackupOnSave(settings.backupOnSave);
         applyWindowSettings();
@@ -97,8 +99,8 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
     }
 
     private void updateTitle() {
-        String name = document.getPath() == null ? "Untitled" : document.getPath().getFileName().toString();
-        setTitle((document.isDirty() ? "* " : "") + name + " — Track Diagram Generator");
+        String name = document.getPath() == null ? Messages.text("programWindow.untitled") : document.getPath().getFileName().toString();
+        setTitle(Messages.text("window.title", document.isDirty() ? "* " : "", name));
     }
 
     // File actions
@@ -118,7 +120,7 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
             document.open(name);
             installDiagram(settings.fitOnOpen);
         } catch (IOException | IllegalArgumentException failure) {
-            DiagramFileDialogs.showError(this, "Open", failure);
+            DiagramFileDialogs.showError(this, Messages.text("file.open"), failure);
         }
     }
 
@@ -129,21 +131,21 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
         diagramPanel.cancelInteraction();
         try {
             if (saveAs || document.getPath() == null) {
-                String suggested = document.getPath() == null ? "Untitled.json" : document.getPath().getFileName().toString();
+                String suggested = document.getPath() == null ? Messages.text("programWindow.untitled") + ".json" : document.getPath().getFileName().toString();
                 while (true) {
                     String name = (String) JOptionPane.showInputDialog(this,
-                            "Filename in saved_diagrams (.json is added automatically):", "Save diagram",
+                            Messages.text("programWindow.filename.in.saved.diagrams.json.is.added.automatically"), Messages.text("programWindow.save.diagram"),
                             JOptionPane.PLAIN_MESSAGE, null, null, suggested);
                     if (name == null) { return false; }
                     suggested = name;
                     Path target;
                     try { target = document.getStore().resolve(name); }
                     catch (IllegalArgumentException failure) {
-                        DiagramFileDialogs.showError(this, "Save", failure);
+                        DiagramFileDialogs.showError(this, Messages.text("programWindow.save"), failure);
                         continue;
                     }
                     if (settings.confirmOverwrite && Files.exists(target) && JOptionPane.showConfirmDialog(this,
-                            "Replace " + target.getFileName() + "?", "Confirm overwrite",
+                            Messages.text("file.replace", target.getFileName().toString()), Messages.text("programWindow.confirm.overwrite"),
                             JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
                         continue;
                     }
@@ -154,22 +156,22 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
             updateTitle();
             return true;
         } catch (IOException | IllegalArgumentException failure) {
-            DiagramFileDialogs.showError(this, "Save", failure);
+            DiagramFileDialogs.showError(this, Messages.text("programWindow.save"), failure);
             return false;
         }
     }
 
     private boolean confirmDiscard() {
         if (!document.isDirty()) { return true; }
-        int choice = JOptionPane.showOptionDialog(this, "Save your changes before continuing?",
-                "Unsaved changes", JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
-                null, new String[]{"Save", "Discard", "Cancel"}, "Save");
+        int choice = JOptionPane.showOptionDialog(this, Messages.text("programWindow.save.your.changes.before.continuing"),
+                Messages.text("programWindow.unsaved.changes"), JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
+                null, new String[]{Messages.text("programWindow.save"), Messages.text("programWindow.discard"), Messages.text("programWindow.cancel")}, Messages.text("programWindow.save"));
         return choice == 1 || (choice == 0 && save(false));
     }
     @Override public void onExport() {
         try { DiagramPanel.imageSize(document.getEditor().getNetwork(), 0.01, 0); }
-        catch (IllegalArgumentException failure) { DiagramFileDialogs.showError(this, "Export image", failure); return; }
-        String name = document.getPath() == null ? "Untitled" : document.getPath().getFileName().toString().replaceFirst("(?i)\\.json$", "");
+        catch (IllegalArgumentException failure) { DiagramFileDialogs.showError(this, Messages.text("programWindow.export.image"), failure); return; }
+        String name = document.getPath() == null ? Messages.text("programWindow.untitled") : document.getPath().getFileName().toString().replaceFirst("(?i)\\.json$", "");
         ImageExportDialog.show(this, document.getEditor().getNetwork(), name, diagramPanel.getBackground());
     }
     @Override public void onExit() {
@@ -185,26 +187,27 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
     private void changeHistory(boolean redo) {
         try {
             if (redo) { diagramPanel.redo(); } else { diagramPanel.undo(); }
-        } catch (IllegalStateException failure) { DiagramFileDialogs.showError(this, redo ? "Redo" : "Undo", failure); }
+        } catch (IllegalStateException failure) { DiagramFileDialogs.showError(this, redo ? Messages.text("programWindow.redo") : Messages.text("programWindow.undo"), failure); }
     }
 
     @Override public void onSettings() {
         diagramPanel.cancelInteraction();
         SettingsPanel form = new SettingsPanel(settings);
         boolean resetRequested = false;
-        String[] actions = {"Save settings", "Cancel", "Reset defaults"};
+        String[] actions = {Messages.text("programWindow.save.settings"), Messages.text("programWindow.cancel"), Messages.text("programWindow.reset.defaults")};
         while (true) {
-            int choice = JOptionPane.showOptionDialog(this, form, "Settings", JOptionPane.DEFAULT_OPTION,
+            int choice = JOptionPane.showOptionDialog(this, form, Messages.text("programWindow.settings"), JOptionPane.DEFAULT_OPTION,
                     JOptionPane.PLAIN_MESSAGE, null, actions, actions[0]);
             if (choice == 2) {
                 try { form.load(settingsStore.loadDefaults()); resetRequested = true; }
-                catch (IOException failure) { DiagramFileDialogs.showError(this, "Reset defaults", failure); }
+                catch (IOException failure) { DiagramFileDialogs.showError(this, Messages.text("programWindow.reset.defaults"), failure); }
                 continue;
             }
             if (choice != 0) { return; }
             try {
                 AppSettings draft = form.readSettings();
                 settingsStore.save(draft);
+                boolean languageChanged = !settings.languageTag.equals(draft.languageTag);
                 boolean resize = resetRequested || settings.windowWidth != draft.windowWidth || settings.windowHeight != draft.windowHeight
                         || settings.startMaximized != draft.startMaximized;
                 settings = draft;
@@ -212,13 +215,17 @@ public class ProgramWindow extends JFrame implements MenuBar.MenuActions {
                 document.setBackupOnSave(settings.backupOnSave);
                 diagramPanel.applySettings(settings);
                 menuBar.setDebugNodesSelected(settings.showDebugNodes);
+                if (languageChanged) {
+                    JOptionPane.showMessageDialog(this, Messages.text("settings.restart"),
+                            Messages.text("settings.language"), JOptionPane.INFORMATION_MESSAGE);
+                }
                 return;
             } catch (IOException | IllegalArgumentException failure) {
-                DiagramFileDialogs.showError(this, "Save settings", failure);
+                DiagramFileDialogs.showError(this, Messages.text("programWindow.save.settings"), failure);
             }
         }
     }
 
     // Help actions
-    @Override public void onAbout(){ JOptionPane.showMessageDialog(this, "Track Diagram Generator\nVersion 1.0.0"); }
+    @Override public void onAbout(){ JOptionPane.showMessageDialog(this, Messages.text("programWindow.track.diagram.generator.version.1.0.0")); }
 }

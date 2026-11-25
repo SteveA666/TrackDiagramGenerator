@@ -1,5 +1,7 @@
 package model;
 
+import i18n.Messages;
+
 import java.util.Objects;
 
 /**
@@ -22,14 +24,14 @@ public final class PlatformEdge {
 
     public PlatformEdge(TrackSegment trackSegment, TrackSide side,
                         double startFraction, double endFraction, double offset) {
-        this.trackSegment = Objects.requireNonNull(trackSegment, "Track segment cannot be null");
-        this.side = Objects.requireNonNull(side, "Track side cannot be null");
+        this.trackSegment = Objects.requireNonNull(trackSegment, Messages.text("error.PlatformEdge.track.segment.cannot.be.null"));
+        this.side = Objects.requireNonNull(side, Messages.text("error.PlatformEdge.track.side.cannot.be.null"));
         if (!Double.isFinite(startFraction) || !Double.isFinite(endFraction)
                 || startFraction < 0 || endFraction > 1 || startFraction >= endFraction) {
-            throw new IllegalArgumentException("Platform extent must satisfy 0 <= start < end <= 1");
+            throw new IllegalArgumentException(Messages.text("error.PlatformEdge.platform.extent.must.satisfy.0.start.end.1"));
         }
         if (!Double.isFinite(offset) || offset < 0) {
-            throw new IllegalArgumentException("Platform offset must be finite and non-negative");
+            throw new IllegalArgumentException(Messages.text("error.PlatformEdge.platform.offset.must.be.finite.and.non.negative"));
         }
         this.startFraction = startFraction;
         this.endFraction = endFraction;

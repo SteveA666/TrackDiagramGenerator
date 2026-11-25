@@ -4,14 +4,15 @@ The application provides editing and navigation toolbars above the canvas. Choos
 
 ## Controls
 
-Keyboard shortcuts: **N** selects Add Node; **T** selects Add Track; **S** selects Add Station; **P** selects Add Platform; **X** selects Custom Text. Shift plus the same letter also works. Switching tools cancels pending edits and updates the toolbar selection. Shortcuts do not intercept typing in text fields.
+Keyboard shortcuts: **A** selects Select / Move; **N** selects Add Node; **T** selects Add Track; **S** selects Add Station; **P** selects Add Platform; **X** selects Custom Text. Shift plus the same letter also works. Switching tools cancels pending edits and updates the toolbar selection. Shortcuts do not intercept typing in text fields.
 
 - **Select / Move:** click a blue node handle to select it. Drag to preview a new position, then release to commit it. Tracks follow the preview. Clicking empty space clears the selection.
+- **Delete / Backspace:** click to select a node, track, station, custom text, or platform, then press either key to delete it. Undo restores the complete deletion. Deleting a node also deletes its connected tracks and dependent platforms; deleting a track removes dependent platforms; deleting a station removes its platforms while preserving tracks. These shortcuts apply when the canvas has keyboard focus and leave text-field editing alone.
 - **Add Node:** choose Regular or Stub end and click empty space. Identities are assigned automatically. Clicking an existing handle selects that node instead of creating a duplicate.
 - **Add Track:** choose Mainline, Station, or Siding. Drag from an existing node or empty space to another node or empty space. A dashed line previews the track; missing endpoints are created together with the track on release. Existing node handles and exact snapped endpoint positions are reused. You can also click endpoints: an empty first click places a starting node, and the next click connects it to an existing or newly created endpoint. Escape or switching tools cancels the connection but retains the explicitly placed starting node. The node type choice applies to new endpoints only.
 - **Snap to grid:** enabled by default, with configurable 20-unit spacing. Disable it for exact placement. Grid visibility is independent of snapping. Selecting an off-grid node does not move it; only an actual drag applies snapping.
 - **Escape or right click:** cancel a pending connection or drag. Switching tools, changing snapping, or zooming also cancels pending edits. Panning starts by cancelling pending model edits.
-- **Pan:** select the Pan tool and drag with the left mouse button, or drag with the middle button from any tool. Panning changes only the view.
+- **Pan:** hold Space and drag with the left mouse button from any tool, select the Pan tool and drag, or drag with the middle button. Space temporarily enables panning and preserves the active tool; releasing the mouse finishes the pan. Panning changes only the view.
 - **Zoom:** use the mouse wheel to zoom around the pointer, or the + and - buttons to zoom around the canvas centre. The zoom range is 10% to 800%. The scale label updates automatically.
 - **Fit / 100%:** Fit centres the current diagram and chooses a scale within the zoom limits. Very large diagrams may exceed the available view at the minimum scale. 100% resets both zoom and pan. Fit is also safe on an empty diagram.
 - **View > Toggle Debug Nodes:** independently controls the original black debug circles. Small blue squares are editing handles and stay visible so endpoints can be selected.
@@ -34,7 +35,7 @@ Stub ends draw a U-shaped buffer marker across the track, with both arms pointin
 
 ## Scope
 
-The editor supports node and track creation, station and custom text labels, side and island platform editing, view navigation, JSON saving/loading, undo/redo, and persistent settings. Node/track deletion tools remain future work. Use File > Save to preserve edits in `saved_diagrams/`; see the [I/O guide](IO.md) and [settings and history guide](SETTINGS_AND_HISTORY.md).
+The editor supports node and track creation, station and custom text labels, side and island platform editing, view navigation, JSON saving/loading, undo/redo, and persistent settings. Select objects and use Delete or Backspace to remove them. Use File > Save to preserve edits in `saved_diagrams/`; see the [I/O guide](IO.md) and [settings and history guide](SETTINGS_AND_HISTORY.md).
 
 ## Tests
 

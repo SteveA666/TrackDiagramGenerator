@@ -1,5 +1,7 @@
 package model;
 
+import i18n.Messages;
+
 import java.util.*;
 
 /**
@@ -28,7 +30,7 @@ public class Platform {
     public int getNumber(){ return number; }
 
     public void setNumber(int number) {
-        if (number <= 0) { throw new IllegalArgumentException("Platform number must be positive"); }
+        if (number <= 0) { throw new IllegalArgumentException(Messages.text("error.Platform.platform.number.must.be.positive")); }
         if (station != null) { station.validateNumber(this, number); }
         this.number = number;
     }
@@ -55,19 +57,19 @@ public class Platform {
      * Validates numbering and placement before changing either value.<br>
      */
     public void setDefinition(int number, PlatformEdge... edges) {
-        if (number <= 0) { throw new IllegalArgumentException("Platform number must be positive"); }
+        if (number <= 0) { throw new IllegalArgumentException(Messages.text("error.Platform.platform.number.must.be.positive")); }
         if (station != null) { station.validateNumber(this, number); }
-        Objects.requireNonNull(edges, "Edges cannot be null");
+        Objects.requireNonNull(edges, Messages.text("error.Platform.edges.cannot.be.null"));
         if (edges.length < 1 || edges.length > 2) {
-            throw new IllegalArgumentException("A platform requires one or two edges");
+            throw new IllegalArgumentException(Messages.text("error.Platform.a.platform.requires.one.or.two.edges"));
         }
         List<PlatformEdge> replacement = new ArrayList<>();
         for (PlatformEdge edge : edges) {
-            replacement.add(Objects.requireNonNull(edge, "Platform edge cannot be null"));
+            replacement.add(Objects.requireNonNull(edge, Messages.text("error.Platform.platform.edge.cannot.be.null")));
         }
         if (replacement.size() == 2
                 && replacement.get(0).getTrackSegment().getId() == replacement.get(1).getTrackSegment().getId()) {
-            throw new IllegalArgumentException("Island edges must reference different tracks");
+            throw new IllegalArgumentException(Messages.text("error.Platform.island.edges.must.reference.different.tracks"));
         }
         if (station != null) { station.validateEdges(replacement); }
         this.number = number;
@@ -80,7 +82,7 @@ public class Platform {
      */
     public void setTrackSegment(TrackSegment trackSegment) {
         if (isIslandPlatform()) {
-            throw new IllegalStateException("Use setEdges to edit an island platform");
+            throw new IllegalStateException(Messages.text("error.Platform.use.setedges.to.edit.an.island.platform"));
         }
         PlatformEdge edge = edges.get(0);
         setEdges(new PlatformEdge(trackSegment, edge.getSide(), edge.getStartFraction(),

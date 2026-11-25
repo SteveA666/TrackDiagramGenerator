@@ -1,5 +1,7 @@
 package ui;
 
+import i18n.Messages;
+
 import javax.swing.*;
 import java.awt.event.ActionListener;
 import java.awt.Toolkit;
@@ -32,8 +34,8 @@ public class MenuBar extends JMenuBar {
     }
 
     private final MenuActions menuActions;
-    private final JMenuItem undo = new JMenuItem("Undo"), redo = new JMenuItem("Redo");
-    private final JCheckBoxMenuItem debugItem = new JCheckBoxMenuItem("Toggle Debug Nodes");
+    private final JMenuItem undo = new JMenuItem(Messages.text("menuBar.undo")), redo = new JMenuItem(Messages.text("menuBar.redo"));
+    private final JCheckBoxMenuItem debugItem = new JCheckBoxMenuItem(Messages.text("menuBar.toggle.debug.nodes"));
 
     public MenuBar(MenuActions menuActions) {
         this.menuActions = menuActions;
@@ -45,8 +47,8 @@ public class MenuBar extends JMenuBar {
 
     // Menu construction
     private void buildEditMenu() {
-        JMenu edit = new JMenu("Edit");
-        edit.setMnemonic('E');
+        JMenu edit = new JMenu(Messages.text("menuBar.edit"));
+        edit.setMnemonic(Messages.text("menu.mnemonic.edit").codePointAt(0));
         int shortcut = GraphicsEnvironment.isHeadless() ? InputEvent.CTRL_DOWN_MASK
                 : Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
         undo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, shortcut));
@@ -63,52 +65,52 @@ public class MenuBar extends JMenuBar {
         undo.setEnabled(false); redo.setEnabled(false);
         edit.add(undo); edit.add(redo);
         edit.addSeparator();
-        edit.add(menuItem("Settings...", event -> menuActions.onSettings()));
+        edit.add(menuItem(Messages.text("menu.settings"), event -> menuActions.onSettings()));
         add(edit);
     }
 
     public void updateHistory(editor.EditHistory history) {
         undo.setEnabled(history.canUndo()); redo.setEnabled(history.canRedo());
-        undo.setText(history.canUndo() ? "Undo " + history.undoName() : "Undo");
-        redo.setText(history.canRedo() ? "Redo " + history.redoName() : "Redo");
+        undo.setText(history.canUndo() ? Messages.text("history.undo", history.undoName()) : Messages.text("menuBar.undo"));
+        redo.setText(history.canRedo() ? Messages.text("history.redo", history.redoName()) : Messages.text("menuBar.redo"));
     }
 
     public void setDebugNodesSelected(boolean selected) { debugItem.setSelected(selected); }
 
     private void buildFileMenu() {
-        JMenu fileMenu = new JMenu("File");
-        fileMenu.setMnemonic('F');
+        JMenu fileMenu = new JMenu(Messages.text("menuBar.file"));
+        fileMenu.setMnemonic(Messages.text("menu.mnemonic.file").codePointAt(0));
         
         int shortcut = GraphicsEnvironment.isHeadless() ? InputEvent.CTRL_DOWN_MASK
                 : Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
-        fileMenu.add(fileItem("New", e -> menuActions.onNew(), KeyEvent.VK_N, shortcut));
-        fileMenu.add(fileItem("Open...", e -> menuActions.onOpen(), KeyEvent.VK_O, shortcut));
-        fileMenu.add(fileItem("Save", e -> menuActions.onSave(), KeyEvent.VK_S, shortcut));
-        fileMenu.add(fileItem("Save As...", e -> menuActions.onSaveAs(), KeyEvent.VK_S, shortcut | InputEvent.SHIFT_DOWN_MASK));
-        fileMenu.add(fileItem("Export image...", e -> menuActions.onExport(), KeyEvent.VK_E, shortcut));
+        fileMenu.add(fileItem(Messages.text("menuBar.new"), e -> menuActions.onNew(), KeyEvent.VK_N, shortcut));
+        fileMenu.add(fileItem(Messages.text("menuBar.open"), e -> menuActions.onOpen(), KeyEvent.VK_O, shortcut));
+        fileMenu.add(fileItem(Messages.text("menuBar.save"), e -> menuActions.onSave(), KeyEvent.VK_S, shortcut));
+        fileMenu.add(fileItem(Messages.text("menuBar.save.as"), e -> menuActions.onSaveAs(), KeyEvent.VK_S, shortcut | InputEvent.SHIFT_DOWN_MASK));
+        fileMenu.add(fileItem(Messages.text("menuBar.export.image"), e -> menuActions.onExport(), KeyEvent.VK_E, shortcut));
         fileMenu.addSeparator();
-        fileMenu.add(menuItem("Exit", e -> menuActions.onExit()));
+        fileMenu.add(menuItem(Messages.text("menuBar.exit"), e -> menuActions.onExit()));
 
         add(fileMenu);
     }
 
     private void buildViewMenu() {
-        JMenu viewMenu = new JMenu("View");
-        viewMenu.setMnemonic('V');
+        JMenu viewMenu = new JMenu(Messages.text("menuBar.view"));
+        viewMenu.setMnemonic(Messages.text("menu.mnemonic.view").codePointAt(0));
 
         debugItem.addActionListener(e -> menuActions.onSetDebugNodes(debugItem.isSelected()));
         viewMenu.add(debugItem);
         viewMenu.addSeparator();
-        viewMenu.add(menuItem("Settings", e -> menuActions.onSettings()));
+        viewMenu.add(menuItem(Messages.text("menuBar.settings"), e -> menuActions.onSettings()));
 
         add(viewMenu);
     }
 
     private void buildHelpMenu() {
-        JMenu helpMenu = new JMenu("Help");
-        helpMenu.setMnemonic('H');
+        JMenu helpMenu = new JMenu(Messages.text("menuBar.help"));
+        helpMenu.setMnemonic(Messages.text("menu.mnemonic.help").codePointAt(0));
 
-        helpMenu.add(menuItem("About", e -> menuActions.onAbout()));
+        helpMenu.add(menuItem(Messages.text("menuBar.about"), e -> menuActions.onAbout()));
 
         add(helpMenu);
     }

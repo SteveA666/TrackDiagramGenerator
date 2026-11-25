@@ -1,5 +1,7 @@
 package editor;
 
+import i18n.Messages;
+
 import java.awt.geom.*;
 import java.util.function.Function;
 import model.*;
@@ -44,7 +46,7 @@ public final class PlatformGeometry {
             if (!Double.isFinite(corner.getX()) || !Double.isFinite(corner.getY())
                     || corner.getX() < Integer.MIN_VALUE || corner.getX() > Integer.MAX_VALUE
                     || corner.getY() < Integer.MIN_VALUE || corner.getY() > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException("Platform placement is outside supported diagram coordinates.");
+                throw new IllegalArgumentException(Messages.text("error.PlatformGeometry.platform.placement.is.outside.supported.diagram.coordinates"));
             }
         }
         double area = 0;
@@ -55,7 +57,7 @@ public final class PlatformGeometry {
         }
         if (!Double.isFinite(area) || Math.abs(area) < 0.000001
                 || intersects(a[0], a[1], b[0], b[1]) || intersects(a[0], b[0], a[1], b[1])) {
-            throw new IllegalArgumentException("Platform edges must form a visible surface without crossing.");
+            throw new IllegalArgumentException(Messages.text("error.PlatformGeometry.platform.edges.must.form.a.visible.surface.without.crossing"));
         }
         Path2D shape = new Path2D.Double();
         shape.moveTo(corners[0].getX(), corners[0].getY());
@@ -70,7 +72,7 @@ public final class PlatformGeometry {
         Point2D start = position.apply(track.getStart()), end = position.apply(track.getEnd());
         double dx = end.getX() - start.getX(), dy = end.getY() - start.getY();
         double length = Math.hypot(dx, dy);
-        if (length == 0) { throw new IllegalArgumentException("Platform tracks must have visible length."); }
+        if (length == 0) { throw new IllegalArgumentException(Messages.text("error.PlatformGeometry.platform.tracks.must.have.visible.length")); }
         double offset = edge.getOffset() * (edge.getSide() == TrackSide.LEFT ? 1 : -1);
         Point2D[] points = new Point2D[2];
         double[] fractions = {edge.getStartFraction(), edge.getEndFraction()};

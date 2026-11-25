@@ -1,5 +1,7 @@
 package model;
 
+import i18n.Messages;
+
 import java.util.Objects;
 
 /**
@@ -43,14 +45,14 @@ public class CustomText {
     public void setColor(String color){ setAppearance(text, size, font, color); }
 
     public void setAppearance(String text, int size, String font, String color) {
-        Objects.requireNonNull(text, "Text cannot be null.");
-        if (text.trim().isEmpty()) { throw new IllegalArgumentException("Enter some text."); }
-        if (size <= 0) { throw new IllegalArgumentException("Font size must be positive."); }
+        Objects.requireNonNull(text, Messages.text("error.CustomText.text.cannot.be.null"));
+        if (text.trim().isEmpty()) { throw new IllegalArgumentException(Messages.text("error.CustomText.enter.some.text")); }
+        if (size <= 0) { throw new IllegalArgumentException(Messages.text("error.CustomText.font.size.must.be.positive")); }
         if (font == null || font.trim().isEmpty()) {
-            throw new IllegalArgumentException("Choose a font.");
+            throw new IllegalArgumentException(Messages.text("error.CustomText.choose.a.font"));
         }
         if (color == null || !color.matches("#[0-9a-fA-F]{6}")) {
-            throw new IllegalArgumentException("Use an RGB colour such as #000000.");
+            throw new IllegalArgumentException(Messages.text("error.CustomText.use.an.rgb.colour.such.as.000000"));
         }
         this.text = text;
         this.size = size;

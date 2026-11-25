@@ -1,5 +1,7 @@
 package model;
 
+import i18n.Messages;
+
 import java.util.Objects;
 
 /**
@@ -17,7 +19,7 @@ public class Node {
         this.id = id;
         this.x = x;
         this.y = y;
-        this.type = Objects.requireNonNull(type, "Node type cannot be null");
+        this.type = Objects.requireNonNull(type, Messages.text("error.Node.node.type.cannot.be.null"));
     }
 
     // Identity
@@ -39,7 +41,7 @@ public class Node {
 
     // Node type
     public NodeType getNodeType(){ return type; }
-    public void setNodeType(NodeType type){ this.type = Objects.requireNonNull(type, "Node type cannot be null"); }
+    public void setNodeType(NodeType type){ this.type = Objects.requireNonNull(type, Messages.text("error.Node.node.type.cannot.be.null")); }
 
     // Text representation
     @Override

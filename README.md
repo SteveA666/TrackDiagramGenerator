@@ -22,6 +22,7 @@ Create and edit diagrams with undo/redo, save and reopen them as JSON files in `
 - Save and reopen complete diagrams as versioned UTF-8 JSON, with unsaved-change prompts.
 - Undo and redo committed edits, including complete track gestures and platform changes.
 - Customize editing, appearance, navigation, object defaults, and save behavior in Settings.
+- Choose the interface language directly on the welcome screen, or in Settings after opening a diagram. Welcome-screen changes apply immediately; Settings changes apply after restart. English, Canadian French (fr-CA), Simplified Chinese (zh-Hans), and Traditional Chinese (zh-Hant) are bundled.
 - Set window dimensions or maximized startup; reset preferences from `default.json`.
 - Export the whole diagram as PNG or JPG, with scale, padding, background, and JPG quality controls.
 
@@ -174,6 +175,8 @@ settings.json             Saved user preferences (created on save, ignored by Gi
 Use **File → Export image...** (**Ctrl+E**) to export the whole diagram as PNG or JPG to a location you choose. Scale controls resolution (200% by default); padding adds a pixel margin. The dialog displays output dimensions. PNG supports transparency; both formats support white or canvas-color backgrounds. JPG quality is adjustable. Export includes tracks, stub ends, stations, platform numbers, and custom text, with no grid, editing handles, selections, or pending gestures. Export does not change the document, history, or current view. Existing files require overwrite confirmation; images above 16,384 pixels per side or 40 million pixels are rejected before allocation.
 
 New, Open, Save, Save As, Export, Exit, Undo/Redo, and Settings are implemented. See the [settings and history guide](docs/SETTINGS_AND_HISTORY.md).
+
+See the [localization guide](docs/LOCALIZATION.md) for language preferences, fallback behavior, and adding translations.
 
 ## Current limitations
 

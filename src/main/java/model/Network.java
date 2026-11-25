@@ -1,4 +1,6 @@
 package model;
+
+import i18n.Messages;
 import java.util.*;
 
 /**
@@ -28,10 +30,10 @@ public class Network {
 
     public void addNode(Node node) {
         
-        Objects.requireNonNull(node, "Network: Cannot add a null node.");
+        Objects.requireNonNull(node, Messages.text("error.Network.network.cannot.add.a.null.node"));
 
         if (nodes.containsKey(node.getId())) {
-            throw new IllegalArgumentException("Network: Node with ID " + node.getId() + " already exists.");
+            throw new IllegalArgumentException(Messages.text("error.nodeExists", node.getId()));
         }
         nodes.put(node.getId(), node);
         adjacencyList.putIfAbsent(node.getId(), new ArrayList<>());
@@ -58,16 +60,15 @@ public class Network {
 
     public void addTrackSegment(TrackSegment segment) {
 
-        Objects.requireNonNull(segment, "Network: Cannot add a null track segment.");
+        Objects.requireNonNull(segment, Messages.text("error.Network.network.cannot.add.a.null.track.segment"));
 
         if (segment.getNetwork() != null) {
-            throw new IllegalArgumentException("Track segment already belongs to a network");
+            throw new IllegalArgumentException(Messages.text("error.Network.track.segment.already.belongs.to.a.network"));
         }
 
         if (trackSegments.containsKey(segment.getId())) {
             throw new IllegalArgumentException(
-                "Network: Track segment with ID " 
-                + segment.getId() + " already exists.");
+                Messages.text("error.trackExists", segment.getId()));
         }
 
             
@@ -76,8 +77,7 @@ public class Network {
 
         if (segment.getStart().getId() == segment.getEnd().getId()) {
                 throw new IllegalArgumentException(
-                    "Network: Track segment cannot connect a node to itself (ID: "
-                    + segment.getStart().getId() + ")");
+                    Messages.text("error.trackSelf", segment.getStart().getId()));
         }
 
         trackSegments.put(segment.getId(), segment);
@@ -97,7 +97,7 @@ public class Network {
     public void reconnectTrackSegment(int id, Node start, Node end) {
         TrackSegment segment = trackSegments.get(id);
         if (segment == null) {
-            throw new IllegalArgumentException("Unknown track segment ID: " + id);
+            throw new IllegalArgumentException(Messages.text("error.trackMissing", id));
         }
         TrackSegment.validateEndpoints(start, end);
         requireNode(start);
@@ -134,9 +134,9 @@ public class Network {
     public int stationCount(){ return stations.size(); }
 
     public void addStation(Station station) {
-        Objects.requireNonNull(station, "Station cannot be null");
+        Objects.requireNonNull(station, Messages.text("error.Network.station.cannot.be.null"));
         if (stations.containsKey(station.getId()) || station.getNetwork() != null) {
-            throw new IllegalArgumentException("Station ID already exists or station already belongs to a network");
+            throw new IllegalArgumentException(Messages.text("error.Network.station.id.already.exists.or.station.already.belongs.to.a.network"));
         }
         for (Platform platform : station.getPlatforms()) {
             validatePlatformEdges(platform.getEdges());
@@ -162,9 +162,9 @@ public class Network {
     public int customTextCount(){ return customTexts.size(); }
 
     public void addCustomText(CustomText text) {
-        Objects.requireNonNull(text, "Custom text cannot be null.");
+        Objects.requireNonNull(text, Messages.text("error.Network.custom.text.cannot.be.null"));
         if (customTexts.containsKey(text.getId()) || text.getNetwork() != null) {
-            throw new IllegalArgumentException("Text ID exists or text already belongs to a network.");
+            throw new IllegalArgumentException(Messages.text("error.Network.text.id.exists.or.text.already.belongs.to.a.network"));
         }
         customTexts.put(text.getId(), text);
         text.attach(this);
@@ -197,15 +197,15 @@ public class Network {
 
     // Reference validation
     private void requireNode(Node node) {
-        Objects.requireNonNull(node, "Network: Node cannot be null.");
+        Objects.requireNonNull(node, Messages.text("error.Network.network.node.cannot.be.null"));
         Node registered = nodes.get(node.getId());
         if (registered == null) {
             throw new IllegalArgumentException(
-                "Network: Segment references unknown node id: " + node.getId());
+                Messages.text("error.endpointMissing", node.getId()));
         }
         if (registered != node) {
             throw new IllegalArgumentException(
-                "Network: Endpoint must be the registered node instance (ID: " + node.getId() + ")");
+                Messages.text("error.endpointInstance", node.getId()));
         }
     }
 
@@ -213,7 +213,7 @@ public class Network {
         for (PlatformEdge edge : edges) {
             TrackSegment segment = edge.getTrackSegment();
             if (trackSegments.get(segment.getId()) != segment) {
-                throw new IllegalArgumentException("Platform edge must reference the registered track segment");
+                throw new IllegalArgumentException(Messages.text("error.Network.platform.edge.must.reference.the.registered.track.segment"));
             }
         }
     }

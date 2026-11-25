@@ -1,5 +1,7 @@
 package ui;
 
+import i18n.Messages;
+
 import java.awt.Rectangle;
 import settings.AppSettings;
 
@@ -10,7 +12,7 @@ public final class WindowPreferences {
     public static Rectangle bounds(AppSettings settings, Rectangle usableScreen) {
         settings.validate();
         if (usableScreen.width <= 0 || usableScreen.height <= 0) {
-            throw new IllegalArgumentException("The screen must have a usable area.");
+            throw new IllegalArgumentException(Messages.text("windowPreferences.the.screen.must.have.a.usable.area"));
         }
         int width = Math.min(settings.windowWidth, usableScreen.width);
         int height = Math.min(settings.windowHeight, usableScreen.height);

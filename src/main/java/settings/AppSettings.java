@@ -1,11 +1,15 @@
 package settings;
 
+import i18n.Messages;
+
 import com.google.gson.Gson;
 import model.NodeType;
 import model.TrackType;
 
 /** User preferences; defaults preserve the original editor behaviour. */
 public final class AppSettings {
+    /** Empty means system language; persisted as a BCP 47 language tag otherwise. */
+    public String languageTag = "";
     public int windowWidth = 800;
     public int windowHeight = 600;
     public boolean startMaximized;
@@ -35,32 +39,39 @@ public final class AppSettings {
     public AppSettings copy() { return new Gson().fromJson(new Gson().toJson(this), AppSettings.class); }
 
     public void validate() {
-        range(windowWidth, 800, 7680, "Window width");
-        range(windowHeight, 400, 4320, "Window height");
-        range(gridSpacing, 1, 200, "Grid spacing");
-        range(undoLimit, 1, 1000, "Undo limit");
-        range(wheelZoomPercent, 1, 100, "Wheel zoom step");
-        range(textSize, 1, 512, "Default text size");
-        range(platformStartPercent, 0, 99, "Platform start");
-        range(platformEndPercent, 1, 100, "Platform end");
-        if (platformStartPercent >= platformEndPercent) { throw new IllegalArgumentException("Platform start must be before its end."); }
-        if (!Double.isFinite(platformOffset) || platformOffset < 0 || platformOffset > 1000) {
-            throw new IllegalArgumentException("Platform offset must be 0–1000 units.");
+        if (languageTag == null) { throw new IllegalArgumentException(Messages.text("settings.invalidLanguage")); }
+        if (!languageTag.isEmpty()) {
+            try { new java.util.Locale.Builder().setLanguageTag(languageTag).build(); }
+            catch (java.util.IllformedLocaleException failure) {
+                throw new IllegalArgumentException(Messages.text("settings.invalidLanguage"), failure);
+            }
         }
-        if (defaultNodeType == null || defaultTrackType == null) { throw new IllegalArgumentException("Choose node and track types."); }
-        if (textFont == null || textFont.isBlank()) { throw new IllegalArgumentException("Choose a default text font."); }
-        color(backgroundColor, "Background");
-        color(gridColor, "Grid");
-        color(textColor, "Text");
+        range(windowWidth, 800, 7680, "settings.range.windowWidth");
+        range(windowHeight, 400, 4320, "settings.range.windowHeight");
+        range(gridSpacing, 1, 200, "settings.range.gridSpacing");
+        range(undoLimit, 1, 1000, "settings.range.undoLimit");
+        range(wheelZoomPercent, 1, 100, "settings.range.wheelZoomPercent");
+        range(textSize, 1, 512, "settings.range.textSize");
+        range(platformStartPercent, 0, 99, "settings.range.platformStartPercent");
+        range(platformEndPercent, 1, 100, "settings.range.platformEndPercent");
+        if (platformStartPercent >= platformEndPercent) { throw new IllegalArgumentException(Messages.text("error.AppSettings.platform.start.must.be.before.its.end")); }
+        if (!Double.isFinite(platformOffset) || platformOffset < 0 || platformOffset > 1000) {
+            throw new IllegalArgumentException(Messages.text("error.AppSettings.platform.offset.must.be.0.1000.units"));
+        }
+        if (defaultNodeType == null || defaultTrackType == null) { throw new IllegalArgumentException(Messages.text("error.AppSettings.choose.node.and.track.types")); }
+        if (textFont == null || textFont.isBlank()) { throw new IllegalArgumentException(Messages.text("error.AppSettings.choose.a.default.text.font")); }
+        color(backgroundColor, "settings.color.backgroundColor");
+        color(gridColor, "settings.color.gridColor");
+        color(textColor, "settings.color.textColor");
     }
 
     private static void range(int value, int min, int max, String label) {
-        if (value < min || value > max) { throw new IllegalArgumentException(label + " must be " + min + "–" + max + "."); }
+        if (value < min || value > max) { throw new IllegalArgumentException(Messages.text(label, min, max)); }
     }
 
     private static void color(String value, String label) {
         if (value == null || !value.matches("#[0-9a-fA-F]{6}")) {
-            throw new IllegalArgumentException(label + " colour must use #RRGGBB.");
+            throw new IllegalArgumentException(Messages.text(label));
         }
     }
 }

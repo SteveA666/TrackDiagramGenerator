@@ -1,5 +1,7 @@
 package io;
 
+import i18n.Messages;
+
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -117,9 +119,9 @@ public final class DiagramIO {
         try (JsonReader reader = new JsonReader(new StringReader(data))) {
             reader.setStrictness(Strictness.STRICT);
             JsonObject root = object(readValue(reader, 0), "diagram");
-            if (reader.peek() != JsonToken.END_DOCUMENT) { throw invalid("Unexpected content after diagram."); }
+            if (reader.peek() != JsonToken.END_DOCUMENT) { throw invalid(Messages.text("error.DiagramIO.unexpected.content.after.diagram")); }
             int version = integer(root, "formatVersion");
-            if (version != FORMAT_VERSION) { throw invalid("Unsupported formatVersion: " + version); }
+            if (version != FORMAT_VERSION) { throw invalid(Messages.text("error.formatVersion", version)); }
             Network network = new Network();
             for (JsonElement item : array(root, "nodes")) {
                 JsonObject value = object(item, "node");
@@ -127,7 +129,7 @@ public final class DiagramIO {
                 try {
                     network.addNode(new Node(id, integer(value, "x"), integer(value, "y"),
                             enumeration(value, "type", NodeType.class)));
-                } catch (IllegalArgumentException failure) { throw invalid("Node " + id + ": " + failure.getMessage()); }
+                } catch (IllegalArgumentException failure) { throw invalid(Messages.text("error.json.node", id, failure.getMessage())); }
             }
             for (JsonElement item : array(root, "tracks")) {
                 JsonObject value = object(item, "track");
@@ -136,13 +138,13 @@ public final class DiagramIO {
                     int startId = integer(value, "startNodeId"), endId = integer(value, "endNodeId");
                     Node start = network.getNode(startId), end = network.getNode(endId);
                     if (start == null || end == null) {
-                        throw invalid("Track " + id + " references missing node " + (start == null ? startId : endId));
+                        throw invalid(Messages.text("error.json.trackNode", id, start == null ? startId : endId));
                     }
                     if (start.getX() == end.getX() && start.getY() == end.getY()) {
-                        throw invalid("Track " + id + " must have visible length.");
+                        throw invalid(Messages.text("error.json.trackLength", id));
                     }
                     network.addTrackSegment(new TrackSegment(id, start, end, enumeration(value, "type", TrackType.class)));
-                } catch (IllegalArgumentException failure) { throw invalid("Track " + id + ": " + failure.getMessage()); }
+                } catch (IllegalArgumentException failure) { throw invalid(Messages.text("error.json.track", id, failure.getMessage())); }
             }
             for (JsonElement item : array(root, "stations")) {
                 JsonObject value = object(item, "station");
@@ -160,7 +162,7 @@ public final class DiagramIO {
                                 JsonObject edge = object(edgeValues.get(i), "platform edge");
                                 int trackId = integer(edge, "trackId");
                                 TrackSegment track = network.getTrackSegment(trackId);
-                                if (track == null) { throw invalid("references missing track " + trackId); }
+                                if (track == null) { throw invalid(Messages.text("error.json.missingTrack", trackId)); }
                                 edges[i] = new PlatformEdge(track, enumeration(edge, "side", TrackSide.class),
                                         number(edge, "startFraction"), number(edge, "endFraction"), number(edge, "offset"));
                             }
@@ -168,11 +170,11 @@ public final class DiagramIO {
                             PlatformGeometry.outline(platform);
                             station.addPlatform(platform);
                         } catch (IllegalArgumentException | IOException failure) {
-                            throw invalid("Platform " + number + ": " + failure.getMessage());
+                            throw invalid(Messages.text("error.json.platform", number, failure.getMessage()));
                         }
                     }
                 } catch (IllegalArgumentException | IOException failure) {
-                    throw invalid("Station " + id + ": " + failure.getMessage());
+                    throw invalid(Messages.text("error.json.station", id, failure.getMessage()));
                 }
             }
             for (JsonElement item : array(root, "customTexts")) {
@@ -181,24 +183,24 @@ public final class DiagramIO {
                 try {
                     network.addCustomText(new CustomText(string(value, "text"), integer(value, "x"), integer(value, "y"),
                             integer(value, "size"), string(value, "font"), string(value, "color"), id));
-                } catch (IllegalArgumentException failure) { throw invalid("Custom text " + id + ": " + failure.getMessage()); }
+                } catch (IllegalArgumentException failure) { throw invalid(Messages.text("error.json.customtext", id, failure.getMessage())); }
             }
             return network;
         } catch (IllegalArgumentException | IllegalStateException failure) {
-            throw new IOException("Invalid diagram JSON: " + failure.getMessage(), failure);
+            throw new IOException(Messages.text("error.json.invalid", failure.getMessage()), failure);
         }
     }
 
     // Read strictly, including duplicate property names that a normal JSON tree parser would overwrite.
     private static JsonElement readValue(JsonReader reader, int depth) throws IOException {
-        if (depth > 32) { throw invalid("JSON is nested too deeply."); }
+        if (depth > 32) { throw invalid(Messages.text("error.DiagramIO.json.is.nested.too.deeply")); }
         switch (reader.peek()) {
             case BEGIN_OBJECT:
                 reader.beginObject();
                 JsonObject object = new JsonObject();
                 while (reader.hasNext()) {
                     String key = reader.nextName();
-                    if (object.has(key)) { throw invalid("Duplicate JSON property: " + key); }
+                    if (object.has(key)) { throw invalid(Messages.text("error.json.duplicate", key)); }
                     object.add(key, readValue(reader, depth + 1));
                 }
                 reader.endObject();
@@ -213,18 +215,18 @@ public final class DiagramIO {
             case NUMBER: return new JsonPrimitive(new BigDecimal(reader.nextString()));
             case BOOLEAN: return new JsonPrimitive(reader.nextBoolean());
             case NULL: reader.nextNull(); return JsonNull.INSTANCE;
-            default: throw invalid("Expected a JSON value at " + reader.getPath());
+            default: throw invalid(Messages.text("error.json.value", reader.getPath()));
         }
     }
 
     private static JsonObject object(JsonElement value, String description) throws IOException {
-        if (value == null || !value.isJsonObject()) { throw invalid("Expected an object for " + description); }
+        if (value == null || !value.isJsonObject()) { throw invalid(Messages.text("error.json.object", description)); }
         return value.getAsJsonObject();
     }
 
     private static JsonArray array(JsonObject parent, String key) throws IOException {
         JsonElement value = parent.get(key);
-        if (value == null || !value.isJsonArray()) { throw invalid("Expected an array for " + key); }
+        if (value == null || !value.isJsonArray()) { throw invalid(Messages.text("error.json.array", key)); }
         return value.getAsJsonArray();
     }
 
@@ -232,19 +234,19 @@ public final class DiagramIO {
         JsonElement value = parent.get(key);
         if (value == null || !value.isJsonPrimitive()
                 || (numeric ? !value.getAsJsonPrimitive().isNumber() : !value.getAsJsonPrimitive().isString())) {
-            throw invalid("Expected " + (numeric ? "a number" : "a string") + " for " + key);
+            throw invalid(Messages.text("error.json.primitive", numeric ? Messages.text("error.json.numberType") : Messages.text("error.json.stringType"), key));
         }
         return value.getAsJsonPrimitive();
     }
 
     private static int integer(JsonObject parent, String key) throws IOException {
         try { return primitive(parent, key, true).getAsBigDecimal().intValueExact(); }
-        catch (ArithmeticException failure) { throw invalid("Expected a 32-bit integer for " + key); }
+        catch (ArithmeticException failure) { throw invalid(Messages.text("error.json.integer", key)); }
     }
 
     private static double number(JsonObject parent, String key) throws IOException {
         double value = primitive(parent, key, true).getAsDouble();
-        if (!Double.isFinite(value)) { throw invalid("Expected a finite number for " + key); }
+        if (!Double.isFinite(value)) { throw invalid(Messages.text("error.json.finite", key)); }
         return value;
     }
 
@@ -255,7 +257,7 @@ public final class DiagramIO {
     private static <T extends Enum<T>> T enumeration(JsonObject parent, String key, Class<T> type) throws IOException {
         String value = string(parent, key);
         try { return Enum.valueOf(type, value); }
-        catch (IllegalArgumentException failure) { throw invalid("Unknown " + type.getSimpleName() + ": " + value); }
+        catch (IllegalArgumentException failure) { throw invalid(Messages.text("error.json.enum", type.getSimpleName(), value)); }
     }
 
     private static IOException invalid(String message) { return new IOException(message); }

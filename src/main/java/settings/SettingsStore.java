@@ -1,5 +1,7 @@
 package settings;
 
+import i18n.Messages;
+
 import app.PortablePaths;
 
 import com.google.gson.*;
@@ -24,7 +26,7 @@ public final class SettingsStore {
             data = Files.readString(getDefaultsPath(), StandardCharsets.UTF_8);
         } else {
             try (InputStream input = SettingsStore.class.getResourceAsStream("/default.json")) {
-                if (input == null) { throw new IOException("Bundled default.json is missing."); }
+                if (input == null) { throw new IOException(Messages.text("error.SettingsStore.bundled.default.json.is.missing")); }
                 data = new String(input.readAllBytes(), StandardCharsets.UTF_8);
             }
         }
@@ -43,14 +45,14 @@ public final class SettingsStore {
     private static JsonObject readObject(String data, String description) throws IOException {
         try {
             JsonElement value = JSON.fromJson(data, JsonElement.class);
-            if (value == null || !value.isJsonObject()) { throw new IllegalArgumentException("Expected a settings object."); }
+            if (value == null || !value.isJsonObject()) { throw new IllegalArgumentException(Messages.text("error.SettingsStore.expected.a.settings.object")); }
             JsonObject object = value.getAsJsonObject();
             for (var entry : object.entrySet()) {
-                if (entry.getValue().isJsonNull()) { throw new IllegalArgumentException("Missing value for " + entry.getKey()); }
+                if (entry.getValue().isJsonNull()) { throw new IllegalArgumentException(Messages.text("error.settingsMissing", entry.getKey())); }
             }
             return object;
         } catch (JsonParseException | IllegalArgumentException failure) {
-            throw new IOException("Invalid " + description + ": " + failure.getMessage(), failure);
+            throw new IOException(Messages.text("error.settingsFile", description, failure.getMessage()), failure);
         }
     }
 
@@ -60,7 +62,7 @@ public final class SettingsStore {
             settings.validate();
             return settings;
         } catch (JsonParseException | IllegalArgumentException failure) {
-            throw new IOException("Invalid settings: " + failure.getMessage(), failure);
+            throw new IOException(Messages.text("error.settings", failure.getMessage()), failure);
         }
     }
 

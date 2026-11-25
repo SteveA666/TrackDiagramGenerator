@@ -1,5 +1,7 @@
 package editor;
 
+import i18n.Messages;
+
 import io.DiagramIO;
 import java.io.IOException;
 import java.util.*;
@@ -17,13 +19,13 @@ public final class EditHistory {
     EditHistory(Network network) { this.network = network; }
     public boolean canUndo() { return !undo.isEmpty(); }
     public boolean canRedo() { return !redo.isEmpty(); }
-    public String undoName() { return canUndo() ? undo.peekLast().name() : ""; }
-    public String redoName() { return canRedo() ? redo.peekLast().name() : ""; }
+    public String undoName() { return canUndo() ? Messages.text(undo.peekLast().name()) : ""; }
+    public String redoName() { return canRedo() ? Messages.text(redo.peekLast().name()) : ""; }
     public void addListener(Runnable listener) { listeners.add(Objects.requireNonNull(listener)); }
     public void removeListener(Runnable listener) { listeners.remove(listener); }
 
     public void setLimit(int limit) {
-        if (limit < 1 || limit > 1000) { throw new IllegalArgumentException("Undo limit must be 1–1000."); }
+        if (limit < 1 || limit > 1000) { throw new IllegalArgumentException(Messages.text("error.EditHistory.undo.limit.must.be.1.1000")); }
         this.limit = limit;
         trim();
         changed();

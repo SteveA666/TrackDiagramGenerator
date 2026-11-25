@@ -1,5 +1,7 @@
 package model;
 
+import i18n.Messages;
+
 import java.util.*;
 
 /**
@@ -36,8 +38,8 @@ public class Station {
     public String getName(){ return name; }
 
     public void setName(String name) {
-        Objects.requireNonNull(name, "Station name cannot be null");
-        if (name.trim().isEmpty()) { throw new IllegalArgumentException("Station name cannot be blank"); }
+        Objects.requireNonNull(name, Messages.text("error.Station.station.name.cannot.be.null"));
+        if (name.trim().isEmpty()) { throw new IllegalArgumentException(Messages.text("error.Station.station.name.cannot.be.blank")); }
         this.name = name;
     }
 
@@ -52,9 +54,9 @@ public class Station {
     }
 
     public void addPlatform(Platform platform) {
-        Objects.requireNonNull(platform, "Platform cannot be null");
+        Objects.requireNonNull(platform, Messages.text("error.Station.platform.cannot.be.null"));
         if (platform.getStation() != null) {
-            throw new IllegalArgumentException("Platform already belongs to a station");
+            throw new IllegalArgumentException(Messages.text("error.Station.platform.already.belongs.to.a.station"));
         }
         validateNumber(platform, platform.getNumber());
         validateEdges(platform.getEdges());
@@ -89,7 +91,7 @@ public class Station {
     void validateNumber(Platform edited, int number) {
         Platform existing = getPlatform(number);
         if (existing != null && existing != edited) {
-            throw new IllegalArgumentException("Platform number already exists in this station: " + number);
+            throw new IllegalArgumentException(Messages.text("error.platformNumberExists", number));
         }
     }
 

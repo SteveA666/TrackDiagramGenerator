@@ -1,10 +1,13 @@
 package ui;
 
+import i18n.Messages;
+
 import javax.swing.*;
-import java.awt.*;
+// import java.awt.*;
 import java.io.IOException;
 import editor.DiagramDocument;
 import io.DiagramStore;
+import settings.SettingsStore;
 
 /**
  * StartupDialogue<br>
@@ -22,52 +25,36 @@ public class StartupDialogue extends JDialog {
     }
 
     private Choice result=Choice.EXIT;
-    private final DiagramDocument document = new DiagramDocument(DiagramStore.defaultStore());
+    private DiagramDocument document;
 
     public StartupDialogue(JFrame parent) {
-        super(parent, "Track Diagram Generator", true);
-        setSize(300, 150);
+        super(parent, Messages.text("app.name"), true);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setLayout(new BorderLayout());
-
-        JLabel label = new JLabel("Welcome to Track Diagram Generator!", SwingConstants.CENTER);
-        add(label, BorderLayout.CENTER);
-
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new FlowLayout());
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(20,40,20,40));
-
-        JButton newButton = new JButton("New Network");
-        JButton openButton = new JButton("Open Network...");
-        JButton exitButton = new JButton("Exit");
-
-        newButton.addActionListener(e -> {
+        setContentPane(new StartupPanel(SettingsStore.defaultStore(), () -> {
+            document = new DiagramDocument(DiagramStore.defaultStore());
             result = Choice.NEW;
             dispose();
-        });
-
-        openButton.addActionListener(e -> {
+        }, () -> {
             try {
-                String name = DiagramFileDialogs.chooseOpen(this, document.getStore());
+                var store = DiagramStore.defaultStore();
+                String name = DiagramFileDialogs.chooseOpen(this, store);
                 if (name == null) { return; }
-                document.open(name);
+                var opened = new DiagramDocument(store);
+                opened.open(name);
+                document = opened;
                 result = Choice.OPEN;
                 dispose();
             } catch (IOException | IllegalArgumentException failure) {
-                DiagramFileDialogs.showError(this, "Open", failure);
+                DiagramFileDialogs.showError(this, Messages.text("file.open"), failure);
             }
-        });
-
-        exitButton.addActionListener(e -> {
+        }, () -> {
             result = Choice.EXIT;
             dispose();
-        });
-
-        buttonPanel.add(newButton);
-        buttonPanel.add(openButton);
-        buttonPanel.add(exitButton);
-
-        add(buttonPanel, BorderLayout.SOUTH);
+        }, () -> {
+            setTitle(Messages.text("app.name"));
+            pack();
+            setLocationRelativeTo(parent);
+        }, failure -> DiagramFileDialogs.showError(this, Messages.text("programWindow.save.settings"), failure)));
         pack();
         setLocationRelativeTo(parent);
     }

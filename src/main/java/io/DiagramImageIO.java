@@ -1,5 +1,7 @@
 package io;
 
+import i18n.Messages;
+
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.*;
@@ -22,16 +24,16 @@ public final class DiagramImageIO {
     }
 
     public static void save(BufferedImage image, Path path, Format format, int quality) throws IOException {
-        if (quality < 1 || quality > 100) { throw new IllegalArgumentException("JPG quality must be 1–100."); }
+        if (quality < 1 || quality > 100) { throw new IllegalArgumentException(Messages.text("error.DiagramImageIO.jpg.quality.must.be.1.100")); }
         if (format == Format.JPG && image.getColorModel().hasAlpha()) {
-            throw new IllegalArgumentException("JPG requires an opaque background.");
+            throw new IllegalArgumentException(Messages.text("error.DiagramImageIO.jpg.requires.an.opaque.background"));
         }
         Path target = path.toAbsolutePath().normalize();
         Files.createDirectories(target.getParent());
         Path temporary = Files.createTempFile(target.getParent(), ".export-", ".tmp");
         try {
             var writers = ImageIO.getImageWritersByFormatName(format.name());
-            if (!writers.hasNext()) { throw new IOException("No image encoder available for " + format); }
+            if (!writers.hasNext()) { throw new IOException(Messages.text("error.imageEncoder", format)); }
             ImageWriter writer = writers.next();
             try (ImageOutputStream output = ImageIO.createImageOutputStream(temporary.toFile())) {
                 writer.setOutput(output);
