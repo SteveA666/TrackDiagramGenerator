@@ -3,7 +3,7 @@ package ui;
 import i18n.Messages;
 
 import javax.swing.*;
-// import java.awt.*;
+//import java.awt.*;
 import java.io.IOException;
 import editor.DiagramDocument;
 import io.DiagramStore;

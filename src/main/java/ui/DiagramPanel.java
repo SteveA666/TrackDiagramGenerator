@@ -74,7 +74,7 @@ public class DiagramPanel extends JPanel {
             @Override public void mouseReleased(MouseEvent event){ release(event); }
             @Override public void mouseWheelMoved(MouseWheelEvent event){
                 double direction = settings.invertWheelZoom ? 1 : -1;
-                zoomAt(Math.pow(1 + settings.wheelZoomPercent / 100.0,
+                zoomWithWheel(Math.pow(1 + settings.wheelZoomPercent / 100.0,
                         direction * event.getPreciseWheelRotation()), event.getPoint());
             }
             @Override public void mouseMoved(MouseEvent event) {
@@ -159,6 +159,7 @@ public class DiagramPanel extends JPanel {
     private void changeHistory(boolean redo) {
         clearPendingEdit();
         selectedNode = null; selectedTrack = null; selectedLabel = null; selectedPlatform = null; hoveredNode = null;
+        selectedNode = null; selectedTrack = null; selectedLabel = null; selectedPlatform = null; hoveredNode = null;
         String name = redo ? editor.getHistory().redoName() : editor.getHistory().undoName();
         if (redo) { editor.getHistory().redo(); } else { editor.getHistory().undo(); }
         showStatus(name.isEmpty() ? Messages.text(redo ? "history.emptyRedo" : "history.emptyUndo")
@@ -189,6 +190,11 @@ public class DiagramPanel extends JPanel {
 
     public void setNodeType(NodeType type){ nodeType = Objects.requireNonNull(type, "A node type is required."); }
     public void setTrackType(TrackType type){ trackType = Objects.requireNonNull(type, "A track type is required."); }
+
+    private void refreshCursor() {
+        setCursor(panPoint != null ? PanCursor.grabbing() : Cursor.getPredefinedCursor(
+                tool == Tool.PAN ? Cursor.HAND_CURSOR : tool == Tool.SELECT ? Cursor.DEFAULT_CURSOR : Cursor.CROSSHAIR_CURSOR));
+    }
 
     private void bindToolShortcut(String key, Tool tool) {
         String action = "tool-" + key;
@@ -243,13 +249,20 @@ public class DiagramPanel extends JPanel {
     }
 
     // Status feedback
-    public String getStatusMessage(){ return statusMessage; }
+    public String getStatusMessage(){
+        String identity = selectedLabel instanceof Station ? "ID: " + ((Station) selectedLabel).getId()
+                : selectedLabel instanceof CustomText ? "ID: " + ((CustomText) selectedLabel).getId()
+                : selectedPlatform != null ? "ID: " + selectedPlatform.getNumber() + " (Station ID: " + selectedPlatform.getStation().getId() + ")"
+                : selectedNode != null ? "ID: " + selectedNode.getId()
+                : selectedTrack != null ? "ID: " + selectedTrack.getId() : "";
+        return identity.isEmpty() ? statusMessage : identity + " — " + statusMessage;
+    }
     public boolean isStatusError(){ return statusError; }
 
     private void showStatus(String message, boolean error) {
         statusMessage = message;
         statusError = error;
-        firePropertyChange("status", null, message);
+        firePropertyChange("status", null, getStatusMessage());
     }
 
     // View navigation and coordinates
@@ -260,6 +273,20 @@ public class DiagramPanel extends JPanel {
     public void zoomAt(double factor, Point2D anchor) {
         viewport.zoomAt(factor, anchor);
         viewChanged();
+    }
+
+    private void zoomWithWheel(double factor, Point anchor) {
+        if (tool != Tool.ADD_TRACK || connectionStart == null) {
+            zoomAt(factor, anchor);
+            return;
+        }
+        // Track endpoints are stored in world coordinates, so zoom can keep the
+        // pending click, drag, or continuous chain without moving its start.
+        viewport.zoomAt(factor, anchor);
+        pointer = anchor;
+        hoveredNode = nodeAt(pointer);
+        firePropertyChange("view", null, getZoom());
+        repaint();
     }
 
     public void zoomIn(){ zoomAt(1.25, new Point(getWidth() / 2, getHeight() / 2)); }
@@ -388,6 +415,7 @@ public class DiagramPanel extends JPanel {
         dragOffset = null;
         dragMoved = false;
         panPoint = null;
+        refreshCursor();
     }
 
     // Mouse interactions
@@ -408,6 +436,7 @@ public class DiagramPanel extends JPanel {
         Node hit = nodeAt(pointer);
         selectedLabel = null;
         selectedPlatform = null;
+        selectedTrack = null;
         selectedTrack = null;
         if (tool == Tool.ADD_STATION || tool == Tool.ADD_TEXT) { selectedNode = null; }
         try {
@@ -507,6 +536,7 @@ public class DiagramPanel extends JPanel {
     private void drag(MouseEvent event) {
         if (panPoint != null) {
             viewport.pan(event.getX() - panPoint.x, event.getY() - panPoint.y);
+            pointer = event.getPoint();
             panPoint = event.getPoint();
             firePropertyChange("view", null, getZoom());
             repaint();
@@ -528,12 +558,21 @@ public class DiagramPanel extends JPanel {
 
     private void release(MouseEvent event) {
         if (panPoint != null) {
+            // Releasing left while panning pauses the track gesture. Its world
+            // start remains available for the next click instead of committing.
+            if (SwingUtilities.isLeftMouseButton(event) && trackGesture) {
+                trackGesture = false;
+                trackDragged = false;
+            }
             if (event.getButton() == panButton) {
                 viewport.pan(event.getX() - panPoint.x, event.getY() - panPoint.y);
+                pointer = event.getPoint();
+                hoveredNode = nodeAt(pointer);
                 panPoint = null;
+                refreshCursor();
                 firePropertyChange("view", null, getZoom());
                 repaint();
-                showStatus(toolHint(), false);
+                if (connectionStart == null) { showStatus(toolHint(), false); }
             }
             return;
         }
@@ -608,7 +647,8 @@ public class DiagramPanel extends JPanel {
 
     // Platform editing and drawing
     protected PlatformDialog.Result requestPlatform(Platform existing, TrackSegment track) {
-        return new PlatformDialog(editor, existing, track, settings).showDialog(this);
+        Point2D placement = existing == null && pointer != null ? screenToWorld(pointer) : null;
+        return new PlatformDialog(editor, existing, track, settings, placement).showDialog(this);
     }
 
     private void applyPlatformDialog(Platform existing, TrackSegment track) {
@@ -864,6 +904,11 @@ public class DiagramPanel extends JPanel {
             g.setColor(Color.BLACK);
             for (TrackSegment segment : network.getAllTrackSegments()) {
                 g.draw(new Line2D.Double(displayPosition(segment.getStart()), displayPosition(segment.getEnd())));
+            }
+            if (!exportRendering && selectedTrack != null) {
+                g.setColor(new Color(30, 115, 210));
+                g.setStroke(new BasicStroke((float) (3 / getZoom())));
+                g.draw(new Line2D.Double(displayPosition(selectedTrack.getStart()), displayPosition(selectedTrack.getEnd())));
             }
             if (!exportRendering && selectedTrack != null) {
                 g.setColor(new Color(30, 115, 210));
